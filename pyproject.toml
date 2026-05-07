@@ -51,7 +51,14 @@ Issues = "https://github.com/lijinghui03/emoekg/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"emoekg.templates" = ["*.html", "*.css", "*.js"]
+"emoekg.templates" = [
+    "*.html",
+    "*.css",
+    "*.js",
+    "*.j2",
+    "*.md",
+    "vendor/*.js",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
