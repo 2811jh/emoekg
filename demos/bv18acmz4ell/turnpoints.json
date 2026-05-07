@@ -1,0 +1,282 @@
+[
+  {
+    "chunk_id": "C003",
+    "chunk_index": 2,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 6.0,
+    "description": "joy 达到 6/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP01",
+    "evidence_danmakus": [
+      {
+        "time": 37.621,
+        "text": "还有热成像，但是僵尸为什么是热的",
+        "color": 16777215
+      },
+      {
+        "time": 43.48,
+        "text": "我靠 这模组玩过呀 电脑版免费 ",
+        "color": 16777215
+      },
+      {
+        "time": 38.47,
+        "text": "拿下了，内容简直是个整合包",
+        "color": 16707842
+      },
+      {
+        "time": 31.44,
+        "text": "来了来了，已经拿下了。",
+        "color": 16777215
+      },
+      {
+        "time": 35.551,
+        "text": "过小年立马拿下！",
+        "color": 16777215
+      }
+    ],
+    "time_start": 30,
+    "time_end": 45
+  },
+  {
+    "chunk_id": "C008",
+    "chunk_index": 7,
+    "type": "shift",
+    "main_dimension": "joy",
+    "direction": "down",
+    "magnitude": 2.666666666666667,
+    "description": "joy 情绪转冷",
+    "detail": "变化 -2.7 分 / 10 · 分布差异 JS=0.17",
+    "turnpoint_id": "TP02",
+    "evidence_danmakus": [
+      {
+        "time": 128.768,
+        "text": "手机版的话建议加亮亮显示类模组，不然体验感很差",
+        "color": 16777215
+      },
+      {
+        "time": 127.191,
+        "text": "建议打开自然回血，不然的话食物很容易爆仓",
+        "color": 16777215
+      },
+      {
+        "time": 93.771,
+        "text": "我是不是听到了cod16的击杀音效？",
+        "color": 16707842
+      },
+      {
+        "time": 90.378,
+        "text": "真的非常好玩，强烈推荐啊",
+        "color": 16707842
+      },
+      {
+        "time": 119.942,
+        "text": "意志坚定在设置中可以关的",
+        "color": 41194
+      }
+    ],
+    "time_start": 105,
+    "time_end": 120
+  },
+  {
+    "chunk_id": "C025",
+    "chunk_index": 24,
+    "type": "shift",
+    "main_dimension": "disgust",
+    "direction": "up",
+    "magnitude": 2.0,
+    "description": "disgust 情绪升温",
+    "detail": "变化 +2.0 分 / 10 · 分布差异 JS=0.40",
+    "turnpoint_id": "TP03",
+    "evidence_danmakus": [
+      {
+        "time": 356.796,
+        "text": "一般来说建筑里一堆各种吃的喝的，压根不愁饱食度和口渴值，我反正就随一路走到哪吃喝到哪，搜到食物多少都会去吃掉一些",
+        "color": 16777215
+      },
+      {
+        "time": 376.307,
+        "text": "用硅的话有些物品点击不给获取方式应该是还没完全适配，也有一种可能是那些物品只能自然生成",
+        "color": 16777215
+      },
+      {
+        "time": 348.303,
+        "text": "这里建议把每个小方框都点一遍，不然很容易会遗漏一些不显眼的",
+        "color": 16707842
+      },
+      {
+        "time": 370.731,
+        "text": "如果出生时的安全区处在山地的话，地形就会变得很坎坷",
+        "color": 16777215
+      },
+      {
+        "time": 388.909,
+        "text": "现在的模组容器上面没有僵尸了   3月28日",
+        "color": 16777215
+      }
+    ],
+    "time_start": 360,
+    "time_end": 375
+  },
+  {
+    "chunk_id": "C030",
+    "chunk_index": 29,
+    "type": "shift",
+    "main_dimension": "surprise",
+    "direction": "up",
+    "magnitude": 3.0,
+    "description": "surprise 情绪升温",
+    "detail": "变化 +3.0 分 / 10 · 分布差异 JS=0.28",
+    "turnpoint_id": "TP04",
+    "evidence_danmakus": [
+      {
+        "time": 438.901,
+        "text": "适合搭配超级英雄模组一起玩还原丧尸宇宙",
+        "color": 15138834
+      },
+      {
+        "time": 446.345,
+        "text": "南山校长办公室里面有钻石和下界合金",
+        "color": 16777215
+      },
+      {
+        "time": 445.072,
+        "text": "一个装备武器都搜不到",
+        "color": 15138834
+      },
+      {
+        "time": 442.47,
+        "text": "警局全是吃的和子弹",
+        "color": 15138834
+      },
+      {
+        "time": 437.162,
+        "text": "npc呢？",
+        "color": 16777215
+      }
+    ],
+    "time_start": 435,
+    "time_end": 450
+  },
+  {
+    "chunk_id": "C038",
+    "chunk_index": 37,
+    "type": "peak",
+    "main_dimension": "surprise",
+    "direction": "up",
+    "magnitude": 8.0,
+    "description": "surprise 达到 8/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP05",
+    "evidence_danmakus": [
+      {
+        "time": 560.006,
+        "text": "这里建议带几个盾牌来打，原版MC盾牌机制还是很强的",
+        "color": 16707842
+      },
+      {
+        "time": 557.301,
+        "text": "tqbs里的国王长剑",
+        "color": 16777215
+      },
+      {
+        "time": 559.139,
+        "text": "枪之恶魔来了？",
+        "color": 15138834
+      },
+      {
+        "time": 566.171,
+        "text": "电次，不要开门",
+        "color": 15138834
+      },
+      {
+        "time": 561.753,
+        "text": "这不电锯人吗",
+        "color": 16777215
+      }
+    ],
+    "time_start": 555,
+    "time_end": 570
+  },
+  {
+    "chunk_id": "C052",
+    "chunk_index": 51,
+    "type": "peak",
+    "main_dimension": "anticipation",
+    "direction": "up",
+    "magnitude": 6.0,
+    "description": "anticipation 达到 6/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP06",
+    "evidence_danmakus": [
+      {
+        "time": 778.083,
+        "text": "致敬传奇素材库——cod",
+        "color": 16707842
+      },
+      {
+        "time": 778.121,
+        "text": "蓝图可以在枪械台里面合",
+        "color": 16777215
+      },
+      {
+        "time": 765.581,
+        "text": "三角洲嘛？",
+        "color": 16777215
+      },
+      {
+        "time": 778.083,
+        "text": "依旧cod",
+        "color": 15138834
+      },
+      {
+        "time": 766.107,
+        "text": "正片开始",
+        "color": 15138834
+      }
+    ],
+    "time_start": 765,
+    "time_end": 780
+  },
+  {
+    "chunk_id": "C056",
+    "chunk_index": 55,
+    "type": "shift",
+    "main_dimension": "trust",
+    "direction": "down",
+    "magnitude": 1.3333333333333335,
+    "description": "trust 情绪转冷",
+    "detail": "变化 -1.3 分 / 10 · 分布差异 JS=0.16",
+    "turnpoint_id": "TP07",
+    "evidence_danmakus": [
+      {
+        "time": 824.64,
+        "text": "已经试过了，确实可以看到哦，挺不错的，在狭窄过道里跟朋友一起开手电打尸潮有一股求生之路的感觉",
+        "color": 16777215
+      },
+      {
+        "time": 848.104,
+        "text": "我甚至还傻愣愣的在找载具在哪原来需要加这东西",
+        "color": 16777215
+      },
+      {
+        "time": 836.16,
+        "text": "武直10，国产武装直升机",
+        "color": 16777215
+      },
+      {
+        "time": 841.787,
+        "text": "这款模组才¥10",
+        "color": 16777215
+      },
+      {
+        "time": 810.725,
+        "text": "666还有T",
+        "color": 16777215
+      }
+    ],
+    "time_start": 825,
+    "time_end": 840
+  }
+]
