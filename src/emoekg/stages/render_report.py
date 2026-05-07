@@ -37,6 +37,48 @@ def _template_dir() -> Path:
     return Path(str(files("emoekg.templates")))
 
 
+def _load_insights(path: Path) -> dict:
+    """Read ``insights.json`` and normalize it for the template.
+
+    The file is **optional in practice**: Stage 2 writes an empty skeleton,
+    and the Agent's scoring pass usually overwrites it with a populated
+    form. The template only renders the Executive Summary block when the
+    summary text is non-empty, so a missing or skeletal file degrades
+    gracefully to "no TL;DR".
+
+    Expected populated schema::
+
+        {
+          "summary":   "本视频的情绪核心是 ...",   # one-sentence TL;DR
+          "insights": [
+            {"title": "期待先行", "body": "价格公布后即刻转化..."},
+            {"title": "梗触发",   "body": "跨 IP 识别引发集体笑声..."},
+            {"title": "信任背书", "body": "流畅度确认是第二个 trust 峰..."},
+          ]
+        }
+
+    Returns an always-valid dict (missing fields filled with empty values)
+    so the template never needs defensive ``{% if %}`` guards beyond a
+    single ``insights.summary`` check.
+    """
+    if not path.exists():
+        return {"summary": "", "insights": []}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        # A malformed insights file is not fatal to the report.
+        return {"summary": "", "insights": []}
+    return {
+        "summary": str(data.get("summary", "") or ""),
+        "insights": [
+            {"title": str(i.get("title", "") or ""),
+             "body":  str(i.get("body", "")  or "")}
+            for i in (data.get("insights") or [])
+            if isinstance(i, dict)
+        ],
+    }
+
+
 def run(
     working_dir: Path | str,
     with_video: bool = False,
@@ -65,6 +107,7 @@ def run(
     scores = json.loads((working_dir / "scores.json").read_text(encoding="utf-8"))
     tps = json.loads((working_dir / "turnpoints.json").read_text(encoding="utf-8"))
     dms = json.loads((working_dir / "danmaku.json").read_text(encoding="utf-8"))
+    insights = _load_insights(working_dir / "insights.json")
 
     tpl_dir = _template_dir()
     echarts_js = (tpl_dir / "vendor" / "echarts.min.js").read_text(encoding="utf-8")
@@ -92,6 +135,7 @@ def run(
         total_danmaku=len(dms),
         chunks_count=len(scores),
         turnpoints_count=len(tps),
+        insights=insights,  # {"summary": "...", "insights": [{title, body}, ...]}
         # JSON blobs. indent=2 helps when a researcher peeks at the source.
         meta_json=json.dumps(meta, ensure_ascii=False, indent=2),
         scores_json=json.dumps(scores, ensure_ascii=False, indent=2),

@@ -61,8 +61,11 @@ def test_run_produces_single_html_file(tmp_path):
     assert html_path.exists()
     html = html_path.read_text(encoding="utf-8")
 
-    # Header + title
-    assert "emoekg · 情绪心电图" in html
+    # Brand marker — "emoekg" plus the video title must both appear somewhere
+    # in the rendered page. We don't pin a specific headline string here
+    # because the UI copy evolves; the invariant is "this is recognizably
+    # an emoekg report for this specific video".
+    assert "emoekg" in html.lower()
     assert "测试视频" in html
     assert "BVTEST" in html
 
@@ -151,3 +154,94 @@ def test_run_data_json_contains_score_fields(tmp_path):
     # Score blob contains the embedded chunk row.
     assert '"chunk_id": "C001"' in html
     assert '"joy": 5' in html
+
+
+# ---------------------------------------------------------------------------
+# Insights protocol (Agent-produced Executive Summary)
+# ---------------------------------------------------------------------------
+
+
+class TestInsightsRendering:
+    """``insights.json`` is the Agent's TL;DR + three headline findings.
+
+    It is optional: a missing file, a malformed file, or the empty skeleton
+    that Stage 2 writes all degrade gracefully — the report still renders,
+    it just omits the Executive Summary block.
+    """
+
+    def test_missing_insights_json_is_not_fatal(self, tmp_path):
+        _populate(tmp_path)
+        # deliberately no insights.json
+
+        render_report.run(tmp_path)
+
+        html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+        # Empty summary ⇒ the `{% if insights.summary %}` guard suppresses the block.
+        assert 'class="tldr"' not in html
+        assert "BVTEST" in html  # report still valid
+
+    def test_skeleton_insights_json_is_not_rendered(self, tmp_path):
+        _populate(tmp_path)
+        (tmp_path / "insights.json").write_text(
+            '{"summary":"","insights":[]}', encoding="utf-8",
+        )
+
+        render_report.run(tmp_path)
+        html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+        assert 'class="tldr"' not in html
+
+    def test_populated_insights_appear_in_hero(self, tmp_path):
+        _populate(tmp_path)
+        (tmp_path / "insights.json").write_text(
+            json.dumps({
+                "summary": "观众的情绪核心是信任与期待的双峰结构。",
+                "insights": [
+                    {"title": "期待先行", "body": "弹幕在开场 30 秒迅速锁定转化。"},
+                    {"title": "梗触发",   "body": "跨 IP 识别引发集体共鸣。"},
+                    {"title": "流畅背书", "body": "手机党反馈是第二个信任高点。"},
+                ]
+            }, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        render_report.run(tmp_path)
+        html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+
+        assert 'class="tldr"' in html
+        assert "信任与期待的双峰结构" in html
+        assert "期待先行" in html
+        assert "跨 IP 识别" in html
+        assert "流畅背书" in html
+        # All three insights enumerate in the template loop.
+        assert html.count('class="insight"') == 3
+
+    def test_malformed_insights_json_is_swallowed(self, tmp_path):
+        _populate(tmp_path)
+        (tmp_path / "insights.json").write_text("not json {{{", encoding="utf-8")
+
+        # Should not raise.
+        render_report.run(tmp_path)
+        html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+        assert 'class="tldr"' not in html
+
+    def test_partially_shaped_insights_fills_defaults(self, tmp_path):
+        _populate(tmp_path)
+        # Missing `body` on one insight and extraneous `junk` key.
+        (tmp_path / "insights.json").write_text(
+            json.dumps({
+                "summary": "s",
+                "insights": [
+                    {"title": "A"},  # no body
+                    {"title": "B", "body": "b2", "junk": 1},
+                    "not a dict",   # filtered out
+                ],
+                "extra": "ignored",
+            }, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        render_report.run(tmp_path)
+        html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+        # 2 well-shaped insights after filtering.
+        assert html.count('class="insight"') == 2
+        assert "A" in html and "B" in html and "b2" in html

@@ -3,113 +3,980 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🫀 emoekg · {{ meta.title }}</title>
+<title>emoekg · {{ meta.title }}</title>
+
 <style>
-:root { --bg:#0f1419; --fg:#e6e6e6; --muted:#8a94a6; --card:#1a2028; --accent:#F4D03F; }
-* { box-sizing: border-box; }
-body { margin:0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-       background:var(--bg); color:var(--fg); line-height:1.6; }
-.container { max-width:1400px; margin:0 auto; padding:20px; }
-header { padding:16px 0 24px; border-bottom:1px solid #2a3340; }
-header h1 { margin:0 0 8px; font-size:22px; }
-header .meta { color:var(--muted); font-size:13px; }
-header .meta a { color:var(--accent); text-decoration:none; margin-left:12px; }
-.panel { background:var(--card); border:1px solid #2a3340; border-radius:8px;
-         padding:16px; margin:16px 0; }
-.panel h2 { margin:0 0 12px; font-size:16px; color:var(--accent); }
-.layout { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
-@media (max-width:900px) { .layout { grid-template-columns: 1fr; } }
-#video-wrapper, #video-wrapper iframe, #video-wrapper video {
-  width:100%; aspect-ratio: 16/9; border:0; background:#000; border-radius:4px;
+/* ==========================================================================
+   emoekg · Research-Report Aesthetic
+   --------------------------------------------------------------------------
+   Design direction: Stripe Press × Pentagram × FT Weekend, dark edition.
+     · Pure neutrals (near-black → off-white) with one discipline accent.
+     · System font stack only — no CDN, no fallbacks to ugly system serifs.
+     · Editorial density: big headlines, generous leading, thin dividers.
+     · Data, not decoration: zero gratuitous animation.
+   ========================================================================== */
+
+:root {
+  /* Neutrals — nine-step ramp, no pure black (too harsh) and no pure white
+     (strains the eyes). */
+  --n-0:  #0b0b0c;   /* page background */
+  --n-1:  #111113;   /* surface 1 */
+  --n-2:  #17181a;   /* surface 2 (danmaku items / inputs) */
+  --n-3:  #1f2023;   /* hover */
+  --n-4:  #2a2c30;   /* divider, strong */
+  --n-5:  #3a3d43;   /* divider, hairline glow */
+  --n-6:  #6b6f77;   /* axis labels, meta */
+  --n-7:  #9aa0aa;   /* secondary ink */
+  --n-8:  #d4d7dd;   /* primary ink */
+  --n-9:  #f5f5f7;   /* titles, pure ink */
+
+  /* Accent — a restrained, editorial orange. Used sparingly: one link
+     per zone, one key number per card, one chart line at a time. */
+  --acc:       #EB5E28;
+  --acc-soft:  #EB5E2833;
+  --acc-ghost: #EB5E281A;
+
+  /* Palette for the 8-dim ECG — muted, close in luminance so no one line
+     dominates by color alone. Overrides the vivid defaults from plutchik.py
+     *only for the chart*; the Plutchik colors are still used for the tiny
+     dimension dots in the danmaku list so researchers can cross-reference. */
+  --e-joy:         #E6B74F;
+  --e-trust:       #84A98C;
+  --e-fear:        #6A7FB5;
+  --e-surprise:    #C46E7B;
+  --e-sadness:     #5B7B9A;
+  --e-disgust:     #8B6F9B;
+  --e-anger:       #C26E54;
+  --e-anticipation:#D08A5C;
+
+  /* Type — 100% system stack. */
+  --ff-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+              "Hiragino Sans GB", "Microsoft YaHei UI", "HarmonyOS Sans SC",
+              "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+  --ff-serif: ui-serif, Georgia, "Noto Serif CJK SC", "Source Han Serif SC",
+              "Songti SC", "SimSun", serif;
+  --ff-mono:  ui-monospace, "SF Mono", "Menlo", "Cascadia Mono",
+              "Consolas", "Roboto Mono", monospace;
+
+  /* Scale — editorial: big jump between levels. */
+  --fs-display: clamp(36px, 4vw, 60px);
+  --fs-h1:      clamp(28px, 2.6vw, 36px);
+  --fs-h2:      20px;
+  --fs-body:    15px;
+  --fs-small:   13px;
+  --fs-micro:   11px;
 }
-#danmaku-list { max-height:400px; overflow-y:auto; font-size:13px; }
-#danmaku-list .item { padding:4px 8px; border-left:3px solid transparent; cursor:pointer; }
-#danmaku-list .item:hover { background:#222a33; }
-#danmaku-list .item.active { background:#2a3340; border-left-color:var(--accent); }
-#danmaku-list .time { color:var(--muted); margin-right:8px; font-family:monospace; }
-#danmaku-list .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
-                     margin-left:6px; vertical-align:middle; }
-.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
-.filter-bar button { background:#2a3340; color:var(--fg); border:0; padding:4px 10px;
-                     border-radius:4px; cursor:pointer; font-size:12px; }
-.filter-bar button.active { background:var(--accent); color:#000; }
-#ecg-chart { width:100%; height:420px; }
-.tp-item { border-left:3px solid var(--accent); padding:10px 12px; margin-bottom:10px;
-           background:#222a33; border-radius:4px; cursor:pointer; }
-.tp-item h3 { margin:0 0 6px; font-size:14px; }
-.tp-item .evidence { margin-top:8px; font-size:12px; color:var(--muted); }
-.tp-item .evidence li { margin:2px 0; list-style: none; }
-.tp-item .evidence li::before { content:"• "; color:var(--accent); }
-.tp-item.collapsed .evidence, .tp-item.collapsed .tp-link { display:none; }
-.tp-link { display:inline-block; margin-top:8px; color:var(--accent); font-size:12px;
-           text-decoration:none; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--n-0);
+  color: var(--n-8);
+  font-family: var(--ff-sans);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  letter-spacing: 0.003em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+  /* A very subtle film-grain via CSS — just enough that pure dark surfaces
+     don't feel like screens of dead pixels. Remove the line for a fully
+     flat look. */
+  background-image: radial-gradient(ellipse at top,
+    rgba(235, 94, 40, 0.03) 0%,
+    transparent 45%);
+}
+
+a { color: var(--acc); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+::selection { background: var(--acc-soft); color: var(--n-9); }
+
+/* --- layout scaffold ------------------------------------------------------ */
+
+.shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 56px 96px;
+}
+@media (max-width: 860px) { .shell { padding: 32px 22px 64px; } }
+
+/* Site header — masthead-esque, single line, low-key. */
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--n-4);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  color: var(--n-6);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.masthead .brand { color: var(--n-8); font-weight: 600; }
+.masthead .brand b { color: var(--acc); }
+
+/* --- HERO ----------------------------------------------------------------- */
+
+.hero {
+  padding: 64px 0 48px;
+  border-bottom: 1px solid var(--n-4);
+}
+.hero .eyebrow {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--acc);
+  margin-bottom: 28px;
+}
+.hero h1 {
+  margin: 0 0 0.2em;
+  font-family: var(--ff-serif);
+  font-weight: 400;                    /* serif 700 looks bloated; 400 is editorial */
+  font-size: var(--fs-display);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: var(--n-9);
+  max-width: 22ch;
+}
+.hero h1 .sep { color: var(--acc); font-style: normal; }
+.hero h1 .brand-ai {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: 0.34em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--acc);
+  vertical-align: 0.4em;
+  margin-right: 10px;
+  padding: 3px 10px;
+  border: 1px solid var(--acc);
+}
+.hero .video-title {
+  margin: 28px 0 0;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-small);
+  color: var(--n-6);
+  letter-spacing: 0.02em;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.hero .video-title .l {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--n-6);
+}
+.hero .video-title .t {
+  color: var(--n-8);
+  font-size: 15px;
+  font-family: var(--ff-serif);
+}
+.hero .deck {
+  margin: 28px 0 0;
+  font-family: var(--ff-serif);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--n-7);
+  max-width: 62ch;
+}
+
+/* Byline strip — "By algorithm, against 221 anonymous voices, over 15:14." */
+.byline {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--n-4);
+  border-bottom: 1px solid var(--n-4);
+}
+.byline .cell {
+  padding: 18px 0 16px;
+  border-right: 1px solid var(--n-4);
+}
+.byline .cell:last-child { border-right: 0; }
+.byline .cell:first-child { padding-left: 0; }
+.byline .cell:not(:first-child) { padding-left: 18px; }
+.byline .k {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  margin-bottom: 6px;
+}
+.byline .v {
+  font-family: var(--ff-sans);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--n-8);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.byline .v.mono { font-family: var(--ff-mono); font-weight: 400; color: var(--n-9); }
+@media (max-width: 860px) {
+  .byline { grid-template-columns: repeat(2, 1fr); }
+  .byline .cell { border-right: 0; border-bottom: 1px solid var(--n-4); padding-left: 0 !important; }
+  .byline .cell:nth-child(odd) { border-right: 1px solid var(--n-4); padding-right: 14px; }
+}
+
+/* --- SECTION SCAFFOLD ----------------------------------------------------- */
+
+section.zone { margin-top: 72px; }
+
+.zone-head {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: baseline;
+  gap: 24px;
+  padding-bottom: 14px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--n-4);
+}
+.zone-head .no {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--n-6);
+}
+.zone-head h2 {
+  margin: 0;
+  font-family: var(--ff-serif);
+  font-weight: 400;
+  font-size: var(--fs-h1);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--n-9);
+}
+.zone-head .aside {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--n-6);
+}
+.zone-head .aside a { color: var(--n-7); }
+.zone-head .aside a:hover { color: var(--acc); text-decoration: none; }
+
+/* --- EXECUTIVE SUMMARY ---------------------------------------------------- */
+
+.tldr {
+  margin-top: 48px;
+  padding: 40px 0 0;
+  border-top: 1px solid var(--n-4);
+}
+.tldr .lede {
+  font-family: var(--ff-serif);
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.42;
+  letter-spacing: -0.005em;
+  color: var(--n-9);
+  max-width: 40ch;
+  font-weight: 400;
+}
+.tldr .lede::before {
+  content: '§';
+  display: inline-block;
+  margin-right: 14px;
+  color: var(--acc);
+  font-weight: 400;
+}
+.tldr .insights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin-top: 40px;
+  border-top: 1px solid var(--n-4);
+}
+.tldr .insight {
+  padding: 24px 28px 24px 0;
+  border-right: 1px solid var(--n-4);
+}
+.tldr .insight:last-child { border-right: 0; }
+.tldr .insight:not(:first-child) { padding-left: 28px; }
+.tldr .insight .num {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--acc);
+  margin-bottom: 10px;
+}
+.tldr .insight .title {
+  font-family: var(--ff-serif);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--n-9);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.tldr .insight .body {
+  font-family: var(--ff-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--n-7);
+}
+@media (max-width: 860px) {
+  .tldr .insights { grid-template-columns: 1fr; }
+  .tldr .insight { border-right: 0; border-bottom: 1px solid var(--n-4);
+                   padding-left: 0 !important; }
+  .tldr .insight:last-child { border-bottom: 0; }
+}
+
+/* --- VITALS (overview strip) ---------------------------------------------- */
+
+.vitals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--n-4);
+  border-bottom: 1px solid var(--n-4);
+}
+.vital {
+  padding: 28px 32px 26px 0;
+  border-right: 1px solid var(--n-4);
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.vital[data-seek]:hover { background: var(--n-1); }
+.vital:not(:first-child) { padding-left: 32px; }
+.vital:last-child { border-right: 0; padding-right: 0; }
+.vital .label {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.vital .label .marker {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  letter-spacing: 0.15em;
+}
+.vital .headline {
+  font-family: var(--ff-serif);
+  font-weight: 400;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--n-9);
+  margin-bottom: 10px;
+}
+.vital .headline .accent { color: var(--acc); }
+.vital .detail {
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--n-7);
+  line-height: 1.5;
+}
+@media (max-width: 860px) {
+  .vitals { grid-template-columns: 1fr; }
+  .vital { border-right: 0; border-bottom: 1px solid var(--n-4); padding-left: 0 !important; }
+  .vital:last-child { border-bottom: 0; }
+}
+
+/* --- MONITOR (video + ECG) ------------------------------------------------ */
+
+.monitor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.monitor-head .cap {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--n-7);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.monitor-head .hint {
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--n-6);
+  max-width: 50ch;
+  text-align: right;
+}
+
+/* --- LIVE TRACE indicator (pulse dot + label) ----------------------------- */
+.live-trace {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--acc);
+}
+.live-trace .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--acc);
+  box-shadow: 0 0 0 0 var(--acc);
+  animation: pulse 1.6s ease-out infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(235, 94, 40, 0.55); transform: scale(1); }
+  70%  { box-shadow: 0 0 0 10px rgba(235, 94, 40, 0); transform: scale(1.08); }
+  100% { box-shadow: 0 0 0 0 rgba(235, 94, 40, 0); transform: scale(1); }
+}
+.live-trace .sep { color: var(--n-5); margin: 0 2px; }
+.live-trace .freq { color: var(--n-7); }
+
+#video-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--n-4);
+  overflow: hidden;
+}
+#video-wrapper iframe, #video-wrapper video {
+  width: 100%; height: 100%; border: 0; display: block;
+}
+
+.ecg-wrap {
+  margin-top: 28px;
+  padding: 20px 4px 4px;
+  border: 1px solid var(--n-4);
+  background: var(--n-1);
+}
+#ecg-chart { width: 100%; height: 460px; }
+
+/* --- ANALYSIS SPLIT ------------------------------------------------------- */
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+@media (max-width: 1040px) { .split { grid-template-columns: 1fr; gap: 56px; } }
+
+.column-head {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--n-4);
+  display: flex; justify-content: space-between;
+}
+.column-head b { color: var(--n-8); font-weight: 600; }
+
+/* Tiny inline legend that sits under a column-head, explaining notation
+   used inside the list below (e.g. "6/10" in turnpoint cards). Kept
+   deliberately understated — it's a definition, not a headline. */
+.column-note {
+  font-family: var(--ff-sans);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--n-6);
+  margin: -10px 0 18px;
+}
+.column-note b {
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  color: var(--n-8);
+  padding: 1px 4px;
+  background: var(--n-2);
+  border: 1px solid var(--n-4);
+  font-size: 11px;
+}
+
+/* ---- turnpoints ---- */
+
+#turnpoints { display: flex; flex-direction: column; }
+.tp {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--n-4);
+  cursor: pointer;                         /* toggles collapse */
+}
+.tp:last-child { border-bottom: 0; }
+.tp-meta {
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  margin-bottom: 10px;
+}
+.tp-meta .id { color: var(--n-8); font-weight: 600; letter-spacing: 0.2em; }
+/* The time is a real <button> so it reads as interactive; hover underlines
+   + accent color make the seek affordance unambiguous. */
+.tp-meta button.time {
+  all: unset;
+  color: var(--n-9);
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-size: var(--fs-micro);
+  padding: 2px 4px;
+  cursor: pointer;
+  border-bottom: 1px dashed transparent;
+  transition: color .12s, border-color .12s;
+}
+.tp-meta button.time:hover,
+.tp-meta button.time:focus-visible {
+  color: var(--acc);
+  border-bottom-color: var(--acc);
+}
+.tp-meta .type {
+  padding: 2px 9px;
+  border: 1px solid currentColor;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+}
+.tp .head {
+  font-family: var(--ff-serif);
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--n-9);
+  margin-bottom: 4px;
+  font-weight: 400;
+}
+/* Supporting technical readout — reads as annotation, not as a second
+   headline. Rules of thumb:
+   · ~72% the size of .head (visual hierarchy rule).
+   · Mono font for the numbers so they align tabularly if stacked.
+   · Lower-contrast color (n-6, "meta" grey).
+   · Never bold. If any single token needs emphasis it should be done
+     with color, not weight. */
+.tp .tp-detail {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--n-6);
+  letter-spacing: 0.02em;
+  font-weight: 400;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+.tp .evidence {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 14px 0 2px 0;
+  border-top: 1px dashed var(--n-4);
+}
+.tp .evidence li {
+  font-family: var(--ff-serif);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--n-7);
+  padding: 8px 0 8px 22px;
+  position: relative;
+  font-style: italic;
+}
+.tp .evidence li::before {
+  content: '“';
+  position: absolute;
+  left: 0; top: -2px;
+  font-size: 26px;
+  color: var(--acc);
+  font-family: var(--ff-serif);
+  line-height: 1;
+}
+.tp .evidence li .t {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-style: normal;
+  font-size: 11px;
+  color: var(--n-6);
+  margin-right: 10px;
+  letter-spacing: 0.08em;
+}
+.tp .evidence li button.t {
+  all: unset;
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--n-6);
+  margin-right: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 0 3px;
+  border-bottom: 1px dashed transparent;
+  transition: color .12s, border-color .12s;
+}
+.tp .evidence li button.t:hover,
+.tp .evidence li button.t:focus-visible {
+  color: var(--acc);
+  border-bottom-color: var(--acc);
+}
+.tp.collapsed .evidence { display: none; }
+
+/* ---- danmaku list ---- */
+
+#dm-search {
+  width: 100%;
+  padding: 10px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--n-4);
+  color: var(--n-9);
+  font-family: var(--ff-sans);
+  font-size: 15px;
+  outline: none;
+  transition: border-color .15s;
+}
+#dm-search:focus { border-bottom-color: var(--acc); }
+#dm-search::placeholder { color: var(--n-6); }
+
+.filter-bar {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin: 18px 0 18px;
+}
+.filter-bar button {
+  background: transparent;
+  color: var(--n-7);
+  border: 1px solid var(--n-4);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: all .12s ease;
+}
+.filter-bar button:hover { color: var(--n-9); border-color: var(--n-6); }
+.filter-bar button.active {
+  background: var(--n-9);
+  color: var(--n-0);
+  border-color: var(--n-9);
+}
+
+#danmaku-list {
+  max-height: 640px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--n-4) transparent;
+}
+#danmaku-list::-webkit-scrollbar { width: 6px; }
+#danmaku-list::-webkit-scrollbar-thumb { background: var(--n-4); }
+
+#danmaku-list .item {
+  display: grid;
+  grid-template-columns: 60px 1fr 10px;
+  align-items: baseline;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--n-2);
+  cursor: pointer;
+  transition: background .1s, padding .12s;
+  font-size: 14px;
+}
+#danmaku-list .item:hover { background: var(--n-1); padding-left: 6px; }
+#danmaku-list .item.active {
+  background: var(--n-1);
+  border-left: 2px solid var(--acc);
+  padding-left: 10px;
+}
+#danmaku-list .item .time {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--n-6);
+  letter-spacing: 0.05em;
+}
+#danmaku-list .item .text {
+  color: var(--n-8);
+  word-break: break-all;
+  line-height: 1.5;
+}
+#danmaku-list .item .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  justify-self: end;
+}
+
+/* --- LEGEND + COLOPHON ---------------------------------------------------- */
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--n-4);
+  border-bottom: 1px solid var(--n-4);
+}
+.legend .chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+  border-right: 1px solid var(--n-4);
+  padding-left: 14px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--n-7);
+}
+.legend .chip:nth-child(4n) { border-right: 0; }
+.legend .chip:nth-child(-n+4) { /* first row */ }
+.legend .chip:first-child { padding-left: 0; }
+.legend .chip .sw {
+  width: 14px; height: 14px; flex-shrink: 0;
+}
+.legend .chip b { color: var(--n-9); font-weight: 500; margin-right: 2px; }
+@media (max-width: 860px) {
+  .legend { grid-template-columns: repeat(2, 1fr); }
+  .legend .chip { border-right: 0; border-bottom: 1px solid var(--n-4); padding-left: 0 !important; }
+  .legend .chip:nth-child(odd) { border-right: 1px solid var(--n-4); padding-right: 14px; }
+}
+
+.colophon {
+  margin-top: 56px;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--n-4);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.colophon b { color: var(--n-8); font-weight: 500; }
+
+/* --- Methodology note (under §03) ----------------------------------------- */
+.methodology-note {
+  margin-top: 36px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--n-4);
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 24px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--n-6);
+}
+.methodology-note .k {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--n-7);
+}
+.methodology-note b {
+  color: var(--n-8);
+  font-weight: 600;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 0 2px;
+}
+@media (max-width: 860px) {
+  .methodology-note { grid-template-columns: 1fr; gap: 10px; }
+}
+
+/* Print — strip chrome, force light. */
 @media print {
-  .filter-bar, #zoom-controls { display:none; }
-  body { background:#fff; color:#000; }
-  .panel { background:#fff; border-color:#ccc; }
+  body { background: #fff; color: #111; }
+  .masthead, .filter-bar, #dm-search { display: none; }
+  .hero h1, .zone-head h2 { color: #000; }
+  .vital, .tp, .legend .chip, .byline .cell { border-color: #ccc !important; }
 }
 </style>
 </head>
 <body>
-<div class="container">
-<header>
-  <h1>🫀 emoekg · 情绪心电图</h1>
-  <div class="meta">
-    《{{ meta.title }}》· UP: {{ meta.up }} · 时长 {{ duration_hms }} ·
-    {{ total_danmaku }} 条弹幕 · {{ meta.bvid }}
-    <a href="https://www.bilibili.com/video/{{ meta.bvid }}" target="_blank">🔗 跳转 B 站</a>
+<main class="shell">
+
+<!-- =========================== MASTHEAD =========================== -->
+<div class="masthead">
+  <span class="brand">emoekg <b>·</b> emotional electrocardiogram</span>
+  <span>vol. 001 / {{ meta.bvid }} / {{ meta.fetched_at[:10] if meta.fetched_at else '' }}</span>
+</div>
+
+<!-- =========================== HERO =========================== -->
+<header class="hero">
+  <div class="eyebrow">report no. 001 · bilibili danmaku analysis</div>
+
+  <h1><span class="brand-ai">AI</span>情绪心电图<span class="sep">.</span></h1>
+
+  <p class="deck">
+    对一段 {{ duration_hms }} 的视频、{{ total_danmaku }} 条观众弹幕进行八维度情绪切片，
+    算法识别出 {{ turnpoints_count }} 个关键转折。以下为完整研究档案。
+  </p>
+
+  <div class="video-title">
+    <span class="l">Subject</span>
+    <span class="t">《{{ meta.title }}》</span>
   </div>
-  <div class="meta" style="margin-top:4px">生成于 {{ meta.fetched_at }}</div>
+
+  <div class="byline">
+    <div class="cell">
+      <div class="k">Source</div>
+      <div class="v mono">{{ meta.bvid }}</div>
+    </div>
+    <div class="cell">
+      <div class="k">Author</div>
+      <div class="v">{{ meta.up }}</div>
+    </div>
+    <div class="cell">
+      <div class="k">Duration</div>
+      <div class="v mono">{{ duration_hms }}</div>
+    </div>
+    <div class="cell">
+      <div class="k">Samples</div>
+      <div class="v mono">{{ '{:,}'.format(total_danmaku) }}</div>
+    </div>
+    <div class="cell">
+      <div class="k">Turnpoints</div>
+      <div class="v mono">{{ turnpoints_count }}</div>
+    </div>
+  </div>
+
+  {% if insights.summary %}
+  <div class="tldr">
+    <div class="lede">{{ insights.summary }}</div>
+    {% if insights.insights %}
+    <div class="insights">
+      {% for ins in insights.insights %}
+      <div class="insight">
+        <div class="num">Insight / {{ '%02d'|format(loop.index) }}</div>
+        <div class="title">{{ ins.title }}</div>
+        <div class="body">{{ ins.body }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
 </header>
 
-<section class="panel">
-  <h2>§ 全局速览</h2>
+<!-- =========================== §01 VITALS =========================== -->
+<section class="zone">
+  <div class="zone-head">
+    <span class="no">§ 01</span>
+    <h2>全局速览 / Vitals</h2>
+    <span class="aside">
+      <a href="https://www.bilibili.com/video/{{ meta.bvid }}" target="_blank">
+        ↗ bilibili source
+      </a>
+    </span>
+  </div>
   <div id="overview"></div>
 </section>
 
-<div class="layout">
-  <section class="panel">
-    <h2>§ 视频</h2>
-    <div id="video-wrapper"></div>
-  </section>
-  <section class="panel">
-    <h2>§ 情绪心电图</h2>
+<!-- =========================== §02 MONITOR =========================== -->
+<section class="zone">
+  <div class="zone-head">
+    <span class="no">§ 02</span>
+    <h2>影像与心电 / Monitor</h2>
+    <span class="aside">Lead I + Lead II</span>
+  </div>
+
+  <div class="monitor-head">
+    <span class="cap">
+      <span class="live-trace">
+        <span class="dot"></span>LIVE TRACE
+        <span class="sep">/</span>
+        <span class="freq">Lead I · Source Video</span>
+      </span>
+    </span>
+    <span class="hint">点击下方心电图任意位置可同步跳转视频时刻</span>
+  </div>
+  <div id="video-wrapper"></div>
+
+  <div class="ecg-wrap">
+    <div class="monitor-head" style="padding:0 16px 18px 16px;margin-bottom:0">
+      <span class="cap">
+        <span class="live-trace">
+          <span class="dot"></span>8-DIM PLUTCHIK ECG
+          <span class="sep">/</span>
+          <span class="freq">Lead II · n={{ total_danmaku }}</span>
+        </span>
+      </span>
+      <span class="hint">悬停查看每 {{ window_size }}s 窗口的完整情绪读数；拖动下方滑块缩放时间范围</span>
+    </div>
     <div id="ecg-chart"></div>
-  </section>
-</div>
-
-<div class="layout">
-  <section class="panel">
-    <h2>§ 弹幕流（{{ total_danmaku }} 条）</h2>
-    <input id="dm-search" placeholder="🔍 搜索弹幕..." style="width:100%;padding:6px;margin-bottom:8px;
-           background:#2a3340;border:0;color:var(--fg);border-radius:4px" />
-    <div class="filter-bar" id="dm-filter"></div>
-    <div id="danmaku-list"></div>
-  </section>
-  <section class="panel">
-    <h2>§ 情绪转折点</h2>
-    <div id="turnpoints"></div>
-  </section>
-</div>
-
-<section class="panel">
-  <h2>§ 附录</h2>
-  <div id="legend"></div>
-  <p style="color:var(--muted);font-size:12px">
-    切片粒度 {{ window_size }}s · 转折点算法：峰值检测 + 滑动窗口 JS 散度对比 ·
-    共 {{ chunks_count }} 个 chunk，{{ turnpoints_count }} 个转折点
-  </p>
+  </div>
 </section>
+
+<!-- =========================== §03 ANALYSIS =========================== -->
+<section class="zone">
+  <div class="zone-head">
+    <span class="no">§ 03</span>
+    <h2>转折与原声 / Analysis</h2>
+    <span class="aside">{{ turnpoints_count }} turnpoints · {{ total_danmaku }} danmakus</span>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="column-head">
+        <span>Turnpoints</span>
+        <b>{{ turnpoints_count }} detected</b>
+      </div>
+      <div class="column-note">
+        数字如 <b>6/10</b> 表示该情绪在此刻的强度得分（10 分满分，0 = 完全没有，10 = 刷屏级爆发）。
+      </div>
+      <div id="turnpoints"></div>
+    </div>
+    <div>
+      <div class="column-head">
+        <span>Danmaku stream</span>
+        <b>{{ '{:,}'.format(total_danmaku) }}</b>
+      </div>
+      <input id="dm-search" placeholder="🔍  搜索弹幕..." />
+      <div class="filter-bar" id="dm-filter"></div>
+      <div id="danmaku-list"></div>
+    </div>
+  </div>
+
+  <div class="methodology-note">
+    <span class="k">How to read</span>
+    <span>
+      每 {{ window_size }} 秒切一片弹幕，按 Plutchik 八维情绪（喜悦 / 信任 / 恐惧 / 惊讶 / 悲伤 / 厌恶 / 愤怒 / 期待）
+      各打 <b>0–10 分</b>——0 是完全没有，10 是刷屏级爆发。<br>
+      <b>PEAK</b> = 某一情绪在本段达到局部最高分（前后 30–45s 最大值）；
+      <b>VALLEY</b> = 局部最低分；
+      <b>SHIFT</b> = 相邻两段弹幕的整体情绪分布发生显著转向。<br>
+      括号里的 <b>变化 +2.0 分 / 10</b> 表示该维度比上一段高了 2 分；
+      <b>JS</b> 是 Jensen–Shannon 散度（0–1），衡量相邻两段情绪分布的差异——越接近 1，情绪"换频道"越彻底。
+    </span>
+  </div>
+</section>
+
+<!-- =========================== §04 LEGEND =========================== -->
+<section class="zone">
+  <div class="zone-head">
+    <span class="no">§ 04</span>
+    <h2>维度图例 / Legend</h2>
+    <span class="aside">Plutchik 8-dim</span>
+  </div>
+  <div class="legend" id="legend"></div>
+</section>
+
+<!-- =========================== COLOPHON =========================== -->
+<div class="colophon">
+  <span><b>emoekg</b> · generated {{ meta.fetched_at }}</span>
+  <span>window {{ window_size }}s · scipy find_peaks · js divergence · agent-scored</span>
 </div>
 
-<!-- Data embeds -->
+</main>
+
+<!-- =========================== DATA EMBEDS =========================== -->
 <script type="application/json" id="data-meta">{{ meta_json | safe }}</script>
 <script type="application/json" id="data-scores">{{ scores_json | safe }}</script>
 <script type="application/json" id="data-turnpoints">{{ turnpoints_json | safe }}</script>
 <script type="application/json" id="data-danmakus">{{ danmakus_json | safe }}</script>
 <script type="application/json" id="data-config">{{ config_json | safe }}</script>
 
-<!-- ECharts inline -->
 <script>{{ echarts_js | safe }}</script>
 <script>{{ app_js | safe }}</script>
 </body>
