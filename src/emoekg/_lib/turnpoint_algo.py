@@ -49,7 +49,12 @@ def _peak_record(idx: int, dim: str, magnitude: float,
         "main_dimension": dim,
         "direction": "up",
         "magnitude": magnitude,
-        "description": f"{dim} 峰值 {magnitude:.0f}",
+        # `description` = hero line (what happened, in one breath);
+        # `detail` = the supporting technical readout (optional).
+        # Renderers that don't know about `detail` still show something
+        # sensible via `description` alone.
+        "description": f"{dim} 达到 {magnitude:.0f}/10",
+        "detail": "局部峰值",
     }
 
 
@@ -62,7 +67,8 @@ def _valley_record(idx: int, dim: str, magnitude: float,
         "main_dimension": dim,
         "direction": "down",
         "magnitude": magnitude,
-        "description": f"{dim} 谷值 {magnitude:.0f}",
+        "description": f"{dim} 跌至 {magnitude:.0f}/10",
+        "detail": "局部低谷",
     }
 
 
@@ -181,7 +187,9 @@ def find_shifts(scores: list[dict]) -> list[dict]:
         dim = DIMENSIONS[top]
         direction = "up" if diff[top] > 0 else "down"
         delta = diff[top]
-        adjective = "飙升" if direction == "up" else "骤降"
+        adjective = "情绪升温" if direction == "up" else "情绪转冷"
+        # Hero line gets the human verb; the arithmetic/JS details drop
+        # into `detail` so the renderer can give them a smaller weight.
         results.append({
             "chunk_id": scores[i]["chunk_id"],
             "chunk_index": i,
@@ -189,7 +197,8 @@ def find_shifts(scores: list[dict]) -> list[dict]:
             "main_dimension": dim,
             "direction": direction,
             "magnitude": float(abs(delta)),
-            "description": f"{dim} {adjective} (Δ{delta:+.1f}, JS={js:.2f})",
+            "description": f"{dim} {adjective}",
+            "detail": f"变化 {delta:+.1f} 分 / 10 · 分布差异 JS={js:.2f}",
         })
 
     return results
