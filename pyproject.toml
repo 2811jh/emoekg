@@ -56,5 +56,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-asyncio_mode = "auto"
 addopts = "-ra -q"
+# NOTE: `asyncio_mode = "auto"` will be re-enabled once we pull in
+# `pytest-asyncio` (used by the bilibili-api-python based fetch stage).
