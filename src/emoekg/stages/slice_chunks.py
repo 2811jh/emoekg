@@ -1,8 +1,11 @@
 """Stage 2 — slice danmakus into adaptive windows, render chunks.md prompt.
 
 Input:   ``<working_dir>/meta.json`` + ``<working_dir>/danmaku.json`` (Stage 1).
-Output:  ``<working_dir>/chunks.md``    — Jinja2-rendered prompt for the Agent
-         ``<working_dir>/scores.json``  — empty list skeleton, Agent fills Stage 3
+Outputs (written into ``working_dir``):
+    * ``chunks.md``    — Jinja2-rendered prompt for the Agent
+    * ``scores.json``  — empty list skeleton, Agent fills in Stage 3
+    * ``insights.json`` — empty skeleton for the Agent's executive summary,
+      also filled in Stage 3 (see ``docs/scoring_rubric.md`` §6)
 
 Design notes:
   * Window size is chosen by :func:`emoekg._lib.adaptive_window.compute_window_size`
@@ -86,11 +89,19 @@ def run(working_dir: Path | str, force: bool = False) -> None:
     working_dir = Path(working_dir)
     chunks_md = working_dir / "chunks.md"
     scores_json = working_dir / "scores.json"
+    insights_json = working_dir / "insights.json"
 
-    if not force and chunks_md.exists() and scores_json.exists():
+    # "Skip" requires all three artifacts present — otherwise we re-run so
+    # older working dirs (pre-insights protocol) can be upgraded in place.
+    if (
+        not force
+        and chunks_md.exists()
+        and scores_json.exists()
+        and insights_json.exists()
+    ):
         print(
-            f"[Stage 2] SKIP — chunks.md & scores.json present in "
-            f"{working_dir}. Pass --force to re-slice."
+            f"[Stage 2] SKIP — chunks.md, scores.json, insights.json all "
+            f"present in {working_dir}. Pass --force to re-slice."
         )
         return
 
@@ -130,6 +141,17 @@ def run(working_dir: Path | str, force: bool = False) -> None:
         encoding="utf-8",
     )
     scores_json.write_text("[]", encoding="utf-8")
+    # Insights skeleton. The Agent overwrites this with a populated summary +
+    # three insights; ``render_report`` is tolerant of the skeleton form and
+    # will simply omit the Executive Summary block in that case.
+    insights_json.write_text(
+        json.dumps(
+            {"summary": "", "insights": []},
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print(f"[Stage 2] Done → {len(chunks)} chunks, window={window_size}s")
 
 

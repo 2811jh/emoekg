@@ -125,24 +125,78 @@ def fetch_video_meta(bvid: str, retries: int = 3) -> dict:
 
 
 def _normalize_danmaku(dm: Any) -> dict:
-    """Flatten an upstream protobuf danmaku into our schema.
+    """Flatten an upstream :class:`bilibili_api.utils.danmaku.Danmaku` into our schema.
 
-    Field map:
-      * ``progress`` (ms int)  -> ``time`` (float seconds, 3-decimal round)
-      * ``content``            -> ``text``
-      * ``mode``               -> ``mode``
-      * ``color``              -> ``color`` (int)
-      * ``fontsize``           -> ``fontsize`` (int)
-      * ``midHash``            -> ``user_hash`` (opaque sender id)
+    The upstream class currently exposes (observed 2026-05 from
+    ``bilibili-api-python`` 16.x)::
+
+        dm_time    float seconds  → time
+        text       str            → text
+        mode       int            → mode
+        color      int            → color
+        font_size  int            → fontsize
+        crc32_id   str            → user_hash (opaque sender bucket)
+
+    A few field names used to differ (``progress`` ms int, ``content``,
+    ``fontsize``, ``midHash``). For compatibility with older/alternate shapes
+    — and also to let our tests feed in a lightweight :class:`SimpleNamespace`
+    faithfully — we fall back to ``getattr`` lookups.
     """
+    # Time: prefer `dm_time` (float seconds). Fall back to `progress` (ms int).
+    if hasattr(dm, "dm_time"):
+        time_sec = float(dm.dm_time)
+    elif hasattr(dm, "progress"):
+        time_sec = dm.progress / 1000.0
+    else:
+        raise AttributeError(
+            f"Danmaku object has neither 'dm_time' nor 'progress': {type(dm).__name__}"
+        )
+
+    text = getattr(dm, "text", None) or getattr(dm, "content", "")
+    fontsize = getattr(dm, "font_size", None)
+    if fontsize is None:
+        fontsize = getattr(dm, "fontsize", 25)
+    user_hash = (
+        getattr(dm, "crc32_id", None)
+        or getattr(dm, "midHash", None)
+        or getattr(dm, "crack_uid", "")
+    )
+
     return {
-        "time": round(dm.progress / 1000.0, 3),
-        "text": dm.content,
-        "mode": dm.mode,
-        "color": int(dm.color),
-        "fontsize": int(dm.fontsize),
-        "user_hash": dm.midHash,
+        "time": round(time_sec, 3),
+        "text": text,
+        "mode": int(getattr(dm, "mode", 1)),
+        "color": _coerce_color(getattr(dm, "color", 0xFFFFFF)),
+        "fontsize": int(fontsize),
+        "user_hash": str(user_hash),
     }
+
+
+def _coerce_color(value: Any) -> int:
+    """Normalize bilibili-api-python's ``color`` field to a plain int.
+
+    The upstream class sometimes returns a bare int (decimal RGB like
+    ``16777215``), sometimes a zero-padded hex string (``"e70012"``). Both
+    represent the same thing; we want a canonical ``int`` so the front-end
+    can render it uniformly.
+    """
+    if isinstance(value, int):
+        return value
+    s = str(value).strip()
+    if not s:
+        return 0xFFFFFF
+    # Decimal path first (covers the common case without touching exceptions).
+    if s.isdigit():
+        return int(s)
+    # Fall back to hex; strip optional "0x"/"#" prefixes.
+    if s.startswith("0x") or s.startswith("0X"):
+        s = s[2:]
+    elif s.startswith("#"):
+        s = s[1:]
+    try:
+        return int(s, 16)
+    except ValueError:
+        return 0xFFFFFF
 
 
 def fetch_all_danmakus(
@@ -150,23 +204,31 @@ def fetch_all_danmakus(
     duration_sec: int,
     retries: int = 3,
 ) -> list[dict]:
-    """Fetch all historical danmakus via the Protobuf segmented API.
+    """Fetch all current-day danmakus via the Protobuf segmented API.
 
-    Bilibili serves danmakus in 6-minute Protobuf segments. We walk
-    ``page_index = 0 .. ceil(duration / 360)``; out-of-range pages silently
-    return ``[]`` in the upstream library, so off-by-one is harmless.
+    bilibili-api-python's :meth:`Video.get_danmakus` already walks every
+    6-minute Protobuf segment for us when called with default arguments —
+    we just pass ``from_seg=0`` and let ``to_seg`` default to the last
+    segment. There is no need (and no benefit) to loop page_index ourselves;
+    ``page_index`` there refers to the video's **分 P 号** (multi-part index),
+    not the protobuf segment, and multi-part videos are rare for danmaku
+    analysis.
 
     Args:
         bvid: Canonical BV id.
-        duration_sec: Video duration in seconds. ``0`` short-circuits to
+        duration_sec: Video duration in seconds. Used purely to compute the
+            segment count for a nice progress log. ``0`` short-circuits to
             an empty list *without* touching the network.
-        retries: Per-page retry budget. If any page still fails after all
-            retries, the *whole* call raises — we prefer failing loudly over
-            silently producing a partial timeline.
+        retries: Retry budget for the (single) network call. Exponential
+            backoff between attempts.
 
     Returns:
         Deduped list of normalized danmaku dicts. Dedup key is
         ``(time, text, user_hash)``.
+
+    Raises:
+        RuntimeError: if all retry attempts fail; the original exception is
+            chained via ``__cause__``.
     """
     _validate_bvid(bvid)
     if duration_sec < 0:
@@ -175,33 +237,33 @@ def fetch_all_danmakus(
         return []
 
     v = _get_video(bvid)
-    # +1 page for the tail segment, +1 again as defensive overshoot (upstream
-    # returns [] out of range, so this is free insurance).
-    num_pages = (duration_sec // _SEGMENT_SEC) + 1
+    num_segments = (duration_sec + _SEGMENT_SEC - 1) // _SEGMENT_SEC
 
-    all_dms: list[dict] = []
-    for page in range(num_pages):
-        last_exc: BaseException | None = None
-        fetched = False
-        for attempt in range(retries):
-            try:
-                raw = _run(v.get_danmakus(page_index=page))
-                for dm in raw:
-                    all_dms.append(_normalize_danmaku(dm))
-                fetched = True
-                break
-            except Exception as e:  # noqa: BLE001
-                last_exc = e
-                if attempt < retries - 1:
-                    time.sleep(_BACKOFF_BASE ** attempt)
-        if not fetched:
-            raise RuntimeError(
-                f"fetch_all_danmakus({bvid!r}) page={page} "
-                f"failed after {retries} attempts"
-            ) from last_exc
+    last_exc: BaseException | None = None
+    raw: list | None = None
+    for attempt in range(retries):
+        try:
+            # page_index=0 targets the (typically only) 分 P. from_seg=0 + no
+            # to_seg means "all protobuf segments". bilibili-api-python
+            # concatenates them for us.
+            raw = _run(v.get_danmakus(page_index=0, from_seg=0))
+            break
+        except Exception as e:  # noqa: BLE001
+            last_exc = e
+            if attempt < retries - 1:
+                time.sleep(_BACKOFF_BASE ** attempt)
 
-    # Dedup exact (time, text, user_hash) triples. A user re-sending the same
-    # danmaku across segments shows up as one logical event in the ECG.
+    if raw is None:
+        raise RuntimeError(
+            f"fetch_all_danmakus({bvid!r}) failed after {retries} attempts "
+            f"(expected {num_segments} protobuf segments)"
+        ) from last_exc
+
+    all_dms = [_normalize_danmaku(dm) for dm in raw]
+
+    # Dedup exact (time, text, user_hash) triples. bilibili-api-python
+    # shouldn't return duplicates across segments, but better safe: a user
+    # re-sending the same danmaku still collapses to one logical event.
     seen: set[tuple] = set()
     unique: list[dict] = []
     for d in all_dms:

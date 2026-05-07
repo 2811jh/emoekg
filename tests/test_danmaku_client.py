@@ -18,7 +18,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from emoekg._lib.danmaku_client import fetch_all_danmakus, fetch_video_meta
+from emoekg._lib.danmaku_client import (
+    _coerce_color,
+    fetch_all_danmakus,
+    fetch_video_meta,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -49,16 +53,18 @@ def _fake_video_with_info(info: dict) -> MagicMock:
     return v
 
 
-def _fake_video_with_pages(pages: dict[int, list]) -> MagicMock:
-    """Wire up `get_danmakus(page_index=N)` to a fixed pages dict.
+def _fake_video_with_danmakus(all_danmakus: list) -> MagicMock:
+    """Wire up ``get_danmakus(page_index=0, from_seg=0, ...)`` to a flat list.
 
-    Any ``page_index`` not in ``pages`` returns ``[]`` (mimicking
-    bilibili-api-python's silent out-of-range behavior).
+    bilibili-api-python's :meth:`Video.get_danmakus` returns the concatenated
+    list of every protobuf segment in one call, so we mimic that directly.
     """
     v = MagicMock()
 
-    async def _get(page_index: int):
-        return pages.get(page_index, [])
+    async def _get(page_index: int = 0, from_seg: int | None = None,
+                   to_seg: int | None = None, cid: int | None = None,
+                   date=None):
+        return list(all_danmakus)
 
     v.get_danmakus = _get
     return v
@@ -174,9 +180,9 @@ def test_fetch_video_meta_raises_after_max_retries(mock_get_video):
 
 @patch("emoekg._lib.danmaku_client._get_video")
 def test_fetch_all_danmakus_single_page_normalization(mock_get_video):
-    mock_get_video.return_value = _fake_video_with_pages(
-        {0: [_fake_dm(progress_ms=12_340, content="test", mode=1,
-                      color=0xFFFFFF, fontsize=25, midhash="u1")]}
+    mock_get_video.return_value = _fake_video_with_danmakus(
+        [_fake_dm(progress_ms=12_340, content="test", mode=1,
+                  color=0xFFFFFF, fontsize=25, midhash="u1")]
     )
 
     dms = fetch_all_danmakus("BV18acMz4ELL", duration_sec=60)
@@ -192,24 +198,36 @@ def test_fetch_all_danmakus_single_page_normalization(mock_get_video):
 
 
 # ---------------------------------------------------------------------------
-# fetch_all_danmakus — multi-page paging
+# fetch_all_danmakus — long videos fetched in one call
 # ---------------------------------------------------------------------------
 
 
 @patch("emoekg._lib.danmaku_client._get_video")
-def test_fetch_all_danmakus_walks_multiple_pages(mock_get_video):
-    # 20-min video → 4 pages of 6-min segments (+1 tail page → 5 attempts).
-    # Pages 0, 1, 2 have danmakus; 3/4 are empty.
-    pages = {
-        0: [_fake_dm(progress_ms=10_000, content="p0", midhash="u1")],
-        1: [_fake_dm(progress_ms=400_000, content="p1", midhash="u2")],
-        2: [_fake_dm(progress_ms=800_000, content="p2", midhash="u3")],
-    }
-    mock_get_video.return_value = _fake_video_with_pages(pages)
+def test_fetch_all_danmakus_returns_all_segments_in_one_call(mock_get_video):
+    # A 20-minute video would span 4 protobuf segments of 6 minutes each;
+    # bilibili-api-python concatenates them for us, so we just return the
+    # combined payload. We must NOT invoke get_danmakus more than once.
+    dms_from_every_segment = [
+        _fake_dm(progress_ms=10_000, content="seg0", midhash="u1"),
+        _fake_dm(progress_ms=400_000, content="seg1", midhash="u2"),
+        _fake_dm(progress_ms=800_000, content="seg2", midhash="u3"),
+    ]
+    fake = _fake_video_with_danmakus(dms_from_every_segment)
+    # Wrap the coroutine with a counter so we can assert single invocation.
+    original = fake.get_danmakus
+    call_count = {"n": 0}
+
+    async def _counted(**kwargs):
+        call_count["n"] += 1
+        return await original(**kwargs)
+
+    fake.get_danmakus = _counted
+    mock_get_video.return_value = fake
 
     dms = fetch_all_danmakus("BV18acMz4ELL", duration_sec=20 * 60)
 
-    assert [d["text"] for d in dms] == ["p0", "p1", "p2"]
+    assert [d["text"] for d in dms] == ["seg0", "seg1", "seg2"]
+    assert call_count["n"] == 1, "must delegate segment-walking to upstream"
 
 
 @patch("emoekg._lib.danmaku_client._get_video")
@@ -241,8 +259,8 @@ def test_fetch_all_danmakus_dedups_exact_triples(mock_get_video):
     distinct_text = _fake_dm(progress_ms=5_000, content="嘻嘻", midhash="userA")
     distinct_user = _fake_dm(progress_ms=5_000, content="哈哈", midhash="userB")
 
-    mock_get_video.return_value = _fake_video_with_pages(
-        {0: [dup, dup_alt_color, distinct_text, distinct_user]}
+    mock_get_video.return_value = _fake_video_with_danmakus(
+        [dup, dup_alt_color, distinct_text, distinct_user]
     )
 
     dms = fetch_all_danmakus("BV18acMz4ELL", duration_sec=60)
@@ -273,21 +291,54 @@ def test_fetch_all_danmakus_rejects_negative_duration():
 
 
 # ---------------------------------------------------------------------------
-# fetch_all_danmakus — retry on page failure
+# _coerce_color — upstream gives us a mix of int and hex-string
+# ---------------------------------------------------------------------------
+
+
+class TestCoerceColor:
+    def test_plain_int(self):
+        assert _coerce_color(0xFFFFFF) == 0xFFFFFF
+
+    def test_decimal_string(self):
+        assert _coerce_color("16777215") == 0xFFFFFF
+
+    def test_hex_string_no_prefix(self):
+        # bilibili-api-python 16.x emits this shape for colored danmakus.
+        assert _coerce_color("e70012") == 0xE70012
+
+    def test_hex_string_uppercase(self):
+        assert _coerce_color("E70012") == 0xE70012
+
+    def test_hex_with_0x_prefix(self):
+        assert _coerce_color("0xE70012") == 0xE70012
+
+    def test_hex_with_hash_prefix(self):
+        assert _coerce_color("#E70012") == 0xE70012
+
+    def test_empty_string_falls_back_to_white(self):
+        assert _coerce_color("") == 0xFFFFFF
+
+    def test_invalid_string_falls_back_to_white(self):
+        # Garbage in → white out is preferable to crashing a 10k-danmaku fetch.
+        assert _coerce_color("nope!") == 0xFFFFFF
+
+
+# ---------------------------------------------------------------------------
+# fetch_all_danmakus — retry on fetch failure
 # ---------------------------------------------------------------------------
 
 
 @patch("emoekg._lib.danmaku_client.time.sleep", new=lambda *_: None)
 @patch("emoekg._lib.danmaku_client._get_video")
-def test_fetch_all_danmakus_retries_single_page(mock_get_video):
-    # Page 0 fails twice then succeeds. We must NOT skip the page.
+def test_fetch_all_danmakus_retries_on_failure(mock_get_video):
+    # First two calls raise; third one succeeds. We must NOT give up early.
     call_count = {"n": 0}
 
     v = MagicMock()
 
-    async def _get(page_index: int):
-        if page_index != 0:
-            return []
+    async def _get(page_index: int = 0, from_seg: int | None = None,
+                   to_seg: int | None = None, cid: int | None = None,
+                   date=None):
         call_count["n"] += 1
         if call_count["n"] < 3:
             raise TimeoutError("slow")

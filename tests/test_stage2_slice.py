@@ -169,11 +169,16 @@ def test_run_downsamples_dense_chunk(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_run_skips_when_both_outputs_exist(tmp_path):
+def test_run_skips_when_all_three_outputs_exist(tmp_path):
     _write_meta(tmp_path)
     (tmp_path / "danmaku.json").write_text("[]", encoding="utf-8")
     (tmp_path / "chunks.md").write_text("STALE", encoding="utf-8")
     (tmp_path / "scores.json").write_text('[{"marker":"keep"}]', encoding="utf-8")
+    # insights.json is a sibling skeleton; its presence is part of the
+    # "fully prepared" signal that triggers SKIP.
+    (tmp_path / "insights.json").write_text(
+        '{"summary":"kept","insights":[]}', encoding="utf-8",
+    )
 
     slice_chunks.run(tmp_path, force=False)
 
@@ -181,6 +186,29 @@ def test_run_skips_when_both_outputs_exist(tmp_path):
     assert json.loads((tmp_path / "scores.json").read_text(encoding="utf-8")) == [
         {"marker": "keep"}
     ]
+    # Insights must also have been preserved — Stage 2 should not be
+    # stomping Agent output on a dirty re-run.
+    assert json.loads((tmp_path / "insights.json").read_text(encoding="utf-8")) \
+        == {"summary": "kept", "insights": []}
+
+
+def test_run_rewrites_when_insights_json_missing(tmp_path):
+    # An older working dir with only chunks.md + scores.json must NOT be
+    # treated as "done" — we need to upgrade it to the insights protocol.
+    _write_meta(tmp_path)
+    (tmp_path / "danmaku.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "chunks.md").write_text("STALE", encoding="utf-8")
+    (tmp_path / "scores.json").write_text('[{"marker":"keep"}]', encoding="utf-8")
+    # NO insights.json.
+
+    slice_chunks.run(tmp_path, force=False)
+
+    # chunks.md gets rewritten to the real prompt, scores.json reset to [],
+    # and a fresh insights.json skeleton appears.
+    assert (tmp_path / "chunks.md").read_text(encoding="utf-8") != "STALE"
+    assert (tmp_path / "insights.json").exists()
+    ins = json.loads((tmp_path / "insights.json").read_text(encoding="utf-8"))
+    assert ins == {"summary": "", "insights": []}
 
 
 def test_run_force_overwrites(tmp_path):
