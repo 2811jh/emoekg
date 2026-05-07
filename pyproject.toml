@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emoekg"
+version = "0.1.0"
+description = "Emotional ECG — Bilibili danmaku 8-dimension emotion timeline for UX research"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "lijinghui03" }
+]
+requires-python = ">=3.10"
+keywords = ["bilibili", "danmaku", "emotion", "ux-research", "plutchik", "ecg"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "bilibili-api-python>=16.0.0",
+    "jinja2>=3.1.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.21",
+]
+video = [
+    "yutto>=2.0.0",
+]
+
+[project.scripts]
+emoekg = "emoekg.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/lijinghui03/emoekg"
+Issues = "https://github.com/lijinghui03/emoekg/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"emoekg.templates" = ["*.html", "*.css", "*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+addopts = "-ra -q"

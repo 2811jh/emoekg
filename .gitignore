@@ -1,0 +1,22 @@
+# User runtime outputs
+emoekg_*_*/
+output/
+*.mp4
+*.flv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
