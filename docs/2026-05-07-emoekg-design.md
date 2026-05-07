@@ -2,7 +2,7 @@
 
 > **Status**: Approved (2026-05-07)
 > **Owner**: lijinghui03
-> **Scope**: Skill 从 0 到 1 发布到 GitHub 的完整设计
+> **Scope**: emoekg skill v0.1.0 的完整设计与交付物标准（github 推送动作不在本 spec 范围，交 `github-ops` skill 执行）
 > **Target users**: UX 研究员、内容运营、游戏策划
 
 ---
@@ -113,9 +113,6 @@ emoekg/
 ├── pyproject.toml                   # 版本号、CLI entry point
 ├── CHANGELOG.md                     # 每版本变更记录
 ├── .gitignore
-├── .github/
-│   └── workflows/
-│       └── ci.yml                   # 轻量 CI：安装 + import 检查
 │
 ├── scripts/
 │   ├── fetch_danmaku.py            # Stage 1
@@ -453,16 +450,18 @@ def compute_window_size(duration_sec: int) -> int:
 
 ---
 
-## 10. GitHub 发布
+## 10. 仓库发布物清单
 
-### 10.1 仓库元信息
+> 本节只定义"仓库里应该有哪些文件"。实际推送 GitHub 的流程（创建 repo、配 Topics、打 tag、上传 Releases）交由 `github-ops` skill 负责执行，不在本 spec 范围内。
+
+### 10.1 仓库元信息（交接给 github-ops）
 
 - 仓库名：`emoekg`
 - 协议：MIT
 - 主分支：`main`
 - GitHub Topics：`agent-skill`, `bilibili`, `danmaku`, `emotion-analysis`, `ux-research`, `plutchik`, `codemaker-skill`
 
-### 10.2 关键发布物
+### 10.2 关键发布物（本 skill 开发范围内要交付的文件）
 
 | 文件 | 内容 |
 |---|---|
@@ -474,7 +473,6 @@ def compute_window_size(duration_sec: int) -> int:
 | `requirements.txt` | bilibili-api-python, jinja2, numpy, scipy |
 | `pyproject.toml` | 版本号 v0.1.0、CLI entry `emoekg` |
 | `CHANGELOG.md` | 每版本一段 |
-| `.github/workflows/ci.yml` | 轻量 CI：install + import |
 
 ### 10.3 `SKILL.md` frontmatter（草稿）
 
@@ -525,15 +523,6 @@ scipy>=1.10.0
 # yutto>=2.0.0          # optional, 仅 --with-video 需要
 ```
 
-### 10.5 CI（`.github/workflows/ci.yml`）
-
-仅做：
-- `pip install -r requirements.txt`
-- `python -c "from emoekg.scripts._lib import plutchik, adaptive_window, turnpoint_algo"`
-- `python -m emoekg --help`
-
-**不做**真实弹幕拉取（依赖外部网络 + 对 B 站不礼貌）。
-
 ---
 
 ## 11. 测试策略
@@ -549,7 +538,7 @@ scipy>=1.10.0
 
 ### 11.2 集成测试（手动）
 
-- 用 `BV18acMz4ELL` 跑全流程（不上 CI，避免敏感）
+- 用 `BV18acMz4ELL` 跑全流程作为验收样本
 - 验收标准：
   - `emoekg_report.html` 能正常在 Chrome 打开
   - 主图 8 条线都画出来
