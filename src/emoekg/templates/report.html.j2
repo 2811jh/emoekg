@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🫀 emoekg · {{ meta.title }}</title>
+<style>
+:root { --bg:#0f1419; --fg:#e6e6e6; --muted:#8a94a6; --card:#1a2028; --accent:#F4D03F; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+       background:var(--bg); color:var(--fg); line-height:1.6; }
+.container { max-width:1400px; margin:0 auto; padding:20px; }
+header { padding:16px 0 24px; border-bottom:1px solid #2a3340; }
+header h1 { margin:0 0 8px; font-size:22px; }
+header .meta { color:var(--muted); font-size:13px; }
+header .meta a { color:var(--accent); text-decoration:none; margin-left:12px; }
+.panel { background:var(--card); border:1px solid #2a3340; border-radius:8px;
+         padding:16px; margin:16px 0; }
+.panel h2 { margin:0 0 12px; font-size:16px; color:var(--accent); }
+.layout { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+@media (max-width:900px) { .layout { grid-template-columns: 1fr; } }
+#video-wrapper, #video-wrapper iframe, #video-wrapper video {
+  width:100%; aspect-ratio: 16/9; border:0; background:#000; border-radius:4px;
+}
+#danmaku-list { max-height:400px; overflow-y:auto; font-size:13px; }
+#danmaku-list .item { padding:4px 8px; border-left:3px solid transparent; cursor:pointer; }
+#danmaku-list .item:hover { background:#222a33; }
+#danmaku-list .item.active { background:#2a3340; border-left-color:var(--accent); }
+#danmaku-list .time { color:var(--muted); margin-right:8px; font-family:monospace; }
+#danmaku-list .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+                     margin-left:6px; vertical-align:middle; }
+.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.filter-bar button { background:#2a3340; color:var(--fg); border:0; padding:4px 10px;
+                     border-radius:4px; cursor:pointer; font-size:12px; }
+.filter-bar button.active { background:var(--accent); color:#000; }
+#ecg-chart { width:100%; height:420px; }
+.tp-item { border-left:3px solid var(--accent); padding:10px 12px; margin-bottom:10px;
+           background:#222a33; border-radius:4px; cursor:pointer; }
+.tp-item h3 { margin:0 0 6px; font-size:14px; }
+.tp-item .evidence { margin-top:8px; font-size:12px; color:var(--muted); }
+.tp-item .evidence li { margin:2px 0; list-style: none; }
+.tp-item .evidence li::before { content:"• "; color:var(--accent); }
+.tp-item.collapsed .evidence, .tp-item.collapsed .tp-link { display:none; }
+.tp-link { display:inline-block; margin-top:8px; color:var(--accent); font-size:12px;
+           text-decoration:none; }
+@media print {
+  .filter-bar, #zoom-controls { display:none; }
+  body { background:#fff; color:#000; }
+  .panel { background:#fff; border-color:#ccc; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>🫀 emoekg · 情绪心电图</h1>
+  <div class="meta">
+    《{{ meta.title }}》· UP: {{ meta.up }} · 时长 {{ duration_hms }} ·
+    {{ total_danmaku }} 条弹幕 · {{ meta.bvid }}
+    <a href="https://www.bilibili.com/video/{{ meta.bvid }}" target="_blank">🔗 跳转 B 站</a>
+  </div>
+  <div class="meta" style="margin-top:4px">生成于 {{ meta.fetched_at }}</div>
+</header>
+
+<section class="panel">
+  <h2>§ 全局速览</h2>
+  <div id="overview"></div>
+</section>
+
+<div class="layout">
+  <section class="panel">
+    <h2>§ 视频</h2>
+    <div id="video-wrapper"></div>
+  </section>
+  <section class="panel">
+    <h2>§ 情绪心电图</h2>
+    <div id="ecg-chart"></div>
+  </section>
+</div>
+
+<div class="layout">
+  <section class="panel">
+    <h2>§ 弹幕流（{{ total_danmaku }} 条）</h2>
+    <input id="dm-search" placeholder="🔍 搜索弹幕..." style="width:100%;padding:6px;margin-bottom:8px;
+           background:#2a3340;border:0;color:var(--fg);border-radius:4px" />
+    <div class="filter-bar" id="dm-filter"></div>
+    <div id="danmaku-list"></div>
+  </section>
+  <section class="panel">
+    <h2>§ 情绪转折点</h2>
+    <div id="turnpoints"></div>
+  </section>
+</div>
+
+<section class="panel">
+  <h2>§ 附录</h2>
+  <div id="legend"></div>
+  <p style="color:var(--muted);font-size:12px">
+    切片粒度 {{ window_size }}s · 转折点算法：峰值检测 + 滑动窗口 JS 散度对比 ·
+    共 {{ chunks_count }} 个 chunk，{{ turnpoints_count }} 个转折点
+  </p>
+</section>
+</div>
+
+<!-- Data embeds -->
+<script type="application/json" id="data-meta">{{ meta_json | safe }}</script>
+<script type="application/json" id="data-scores">{{ scores_json | safe }}</script>
+<script type="application/json" id="data-turnpoints">{{ turnpoints_json | safe }}</script>
+<script type="application/json" id="data-danmakus">{{ danmakus_json | safe }}</script>
+<script type="application/json" id="data-config">{{ config_json | safe }}</script>
+
+<!-- ECharts inline -->
+<script>{{ echarts_js | safe }}</script>
+<script>{{ app_js | safe }}</script>
+</body>
+</html>
