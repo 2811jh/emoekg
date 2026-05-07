@@ -1,4 +1,4 @@
-"""Tests for emoekg.lib.time_utils.
+"""Tests for emoekg._lib.time_utils.
 
 These utilities normalize Bilibili danmaku progress (milliseconds) into seconds
 and convert between HH:MM:SS display strings and numeric seconds. All arithmetic
@@ -18,7 +18,7 @@ import pytest
 
 
 def test_parse_timestamp_from_milliseconds_int():
-    from emoekg.lib.time_utils import parse_timestamp
+    from emoekg._lib.time_utils import parse_timestamp
 
     assert parse_timestamp(0) == 0.0
     assert parse_timestamp(1000) == 1.0
@@ -26,21 +26,21 @@ def test_parse_timestamp_from_milliseconds_int():
 
 
 def test_parse_timestamp_accepts_float_milliseconds():
-    from emoekg.lib.time_utils import parse_timestamp
+    from emoekg._lib.time_utils import parse_timestamp
 
     # Some sources (e.g. offline XML export) expose fractional ms.
     assert math.isclose(parse_timestamp(1500.5), 1.5005, rel_tol=0, abs_tol=1e-9)
 
 
 def test_parse_timestamp_rejects_negative():
-    from emoekg.lib.time_utils import parse_timestamp
+    from emoekg._lib.time_utils import parse_timestamp
 
     with pytest.raises(ValueError):
         parse_timestamp(-1)
 
 
 def test_parse_timestamp_rejects_none():
-    from emoekg.lib.time_utils import parse_timestamp
+    from emoekg._lib.time_utils import parse_timestamp
 
     with pytest.raises(TypeError):
         parse_timestamp(None)  # type: ignore[arg-type]
@@ -52,26 +52,26 @@ def test_parse_timestamp_rejects_none():
 
 
 def test_format_hms_zero():
-    from emoekg.lib.time_utils import format_hms
+    from emoekg._lib.time_utils import format_hms
 
     assert format_hms(0) == "00:00:00"
 
 
 def test_format_hms_sub_minute():
-    from emoekg.lib.time_utils import format_hms
+    from emoekg._lib.time_utils import format_hms
 
     assert format_hms(59) == "00:00:59"
 
 
 def test_format_hms_basic():
-    from emoekg.lib.time_utils import format_hms
+    from emoekg._lib.time_utils import format_hms
 
     # 1h 2m 3s
     assert format_hms(3723) == "01:02:03"
 
 
 def test_format_hms_truncates_subseconds():
-    from emoekg.lib.time_utils import format_hms
+    from emoekg._lib.time_utils import format_hms
 
     # Display should floor fractional seconds (no rounding up across second).
     assert format_hms(59.9) == "00:00:59"
@@ -79,14 +79,14 @@ def test_format_hms_truncates_subseconds():
 
 
 def test_format_hms_hours_above_24_are_kept_verbatim():
-    from emoekg.lib.time_utils import format_hms
+    from emoekg._lib.time_utils import format_hms
 
     # Some VODs (compilations) exceed 24h; we do NOT wrap.
     assert format_hms(25 * 3600 + 1) == "25:00:01"
 
 
 def test_format_hms_rejects_negative():
-    from emoekg.lib.time_utils import format_hms
+    from emoekg._lib.time_utils import format_hms
 
     with pytest.raises(ValueError):
         format_hms(-0.5)
@@ -98,39 +98,39 @@ def test_format_hms_rejects_negative():
 
 
 def test_parse_hms_full():
-    from emoekg.lib.time_utils import parse_hms
+    from emoekg._lib.time_utils import parse_hms
 
     assert parse_hms("01:02:03") == 3723.0
 
 
 def test_parse_hms_accepts_single_digit_hour():
-    from emoekg.lib.time_utils import parse_hms
+    from emoekg._lib.time_utils import parse_hms
 
     assert parse_hms("1:02:03") == 3723.0
 
 
 def test_parse_hms_mmss_shorthand():
-    from emoekg.lib.time_utils import parse_hms
+    from emoekg._lib.time_utils import parse_hms
 
     # MM:SS treated as 0 hours.
     assert parse_hms("02:03") == 123.0
 
 
 def test_parse_hms_pure_seconds():
-    from emoekg.lib.time_utils import parse_hms
+    from emoekg._lib.time_utils import parse_hms
 
     assert parse_hms("3723") == 3723.0
     assert parse_hms("0") == 0.0
 
 
 def test_parse_hms_strips_whitespace():
-    from emoekg.lib.time_utils import parse_hms
+    from emoekg._lib.time_utils import parse_hms
 
     assert parse_hms("  00:01:30  ") == 90.0
 
 
 def test_parse_hms_rejects_garbage():
-    from emoekg.lib.time_utils import parse_hms
+    from emoekg._lib.time_utils import parse_hms
 
     for bad in ["", "abc", "1:2:3:4", "--:--", "1:2a:3"]:
         with pytest.raises(ValueError):
@@ -143,25 +143,25 @@ def test_parse_hms_rejects_garbage():
 
 
 def test_clamp_seconds_within_range_is_identity():
-    from emoekg.lib.time_utils import clamp_seconds
+    from emoekg._lib.time_utils import clamp_seconds
 
     assert clamp_seconds(30.0, 100.0) == 30.0
 
 
 def test_clamp_seconds_below_zero_becomes_zero():
-    from emoekg.lib.time_utils import clamp_seconds
+    from emoekg._lib.time_utils import clamp_seconds
 
     assert clamp_seconds(-5.0, 100.0) == 0.0
 
 
 def test_clamp_seconds_above_total_becomes_total():
-    from emoekg.lib.time_utils import clamp_seconds
+    from emoekg._lib.time_utils import clamp_seconds
 
     assert clamp_seconds(200.0, 100.0) == 100.0
 
 
 def test_clamp_seconds_rejects_negative_total():
-    from emoekg.lib.time_utils import clamp_seconds
+    from emoekg._lib.time_utils import clamp_seconds
 
     with pytest.raises(ValueError):
         clamp_seconds(10.0, -1.0)
@@ -177,6 +177,6 @@ def test_clamp_seconds_rejects_negative_total():
     ["00:00:00", "00:00:59", "00:01:30", "01:02:03", "10:59:59"],
 )
 def test_format_parse_round_trip(text):
-    from emoekg.lib.time_utils import format_hms, parse_hms
+    from emoekg._lib.time_utils import format_hms, parse_hms
 
     assert format_hms(parse_hms(text)) == text

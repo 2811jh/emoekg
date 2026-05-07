@@ -21,7 +21,7 @@
 | `emoekg/__init__.py` | 版本号、暴露公共接口 |
 | `emoekg/__main__.py` | `python -m emoekg` 入口 |
 | `emoekg/cli.py` | argparse 定义 + Orchestrator 串联 5 个 Stage |
-| `emoekg/_lib/time_fmt.py` | 秒 ↔ `00:12:34` 格式化 |
+| `emoekg/_lib/time_utils.py` | 秒 ↔ `00:12:34` 格式化 |
 | `emoekg/_lib/plutchik.py` | 8 维情绪 schema + 颜色 + 关键词表 |
 | `emoekg/_lib/bv_parser.py` | URL/各种输入 → BV 号 |
 | `emoekg/_lib/adaptive_window.py` | 自适应窗口大小计算 |
@@ -263,64 +263,70 @@ git commit -m "test: add pytest conftest with fixtures_dir and tmp_working_dir"
 
 # Phase 1：底层工具模块（纯函数，TDD 最佳案例）
 
-## Task 3：`time_fmt.py` —— 秒/字符串互转
+## Task 3：`time_utils.py` —— 秒/字符串互转
+
+> **实现偏离备注（2026-05-07）：** 本任务已落地，实际实现扩展为四个函数
+> `parse_timestamp / format_hms / parse_hms / clamp_seconds`，返回类型统一为
+> `float`，并增加对负数、`None`、非法字符串的严格错误。以下伪代码仅保留为
+> 历史设计意图；权威实现见 `src/emoekg/_lib/time_utils.py` 与
+> `tests/test_time_utils.py`（27 pass）。
 
 **Files:**
-- Create: `emoekg/emoekg/_lib/time_fmt.py`
-- Create: `emoekg/tests/test_time_fmt.py`
+- Create: `emoekg/emoekg/_lib/time_utils.py`
+- Create: `emoekg/tests/test_time_utils.py`
 
 - [ ] **Step 1: 写 8 个失败测试**
 
-`tests/test_time_fmt.py`：
+`tests/test_time_utils.py`：
 ```python
-from emoekg._lib.time_fmt import sec_to_hms, hms_to_sec
+from emoekg._lib.time_utils import format_hms, parse_hms
 
 
 class TestSecToHms:
     def test_zero(self):
-        assert sec_to_hms(0) == "00:00:00"
+        assert format_hms(0) == "00:00:00"
 
     def test_seconds_only(self):
-        assert sec_to_hms(42) == "00:00:42"
+        assert format_hms(42) == "00:00:42"
 
     def test_minutes(self):
-        assert sec_to_hms(75) == "00:01:15"
+        assert format_hms(75) == "00:01:15"
 
     def test_hours(self):
-        assert sec_to_hms(3723) == "01:02:03"
+        assert format_hms(3723) == "01:02:03"
 
     def test_float_truncated(self):
-        assert sec_to_hms(12.9) == "00:00:12"
+        assert format_hms(12.9) == "00:00:12"
 
 
 class TestHmsToSec:
     def test_zero(self):
-        assert hms_to_sec("00:00:00") == 0
+        assert parse_hms("00:00:00") == 0
 
     def test_full(self):
-        assert hms_to_sec("01:02:03") == 3723
+        assert parse_hms("01:02:03") == 3723
 
     def test_roundtrip(self):
         for s in [0, 42, 75, 3723, 10800]:
-            assert hms_to_sec(sec_to_hms(s)) == s
+            assert parse_hms(format_hms(s)) == s
 ```
 
 - [ ] **Step 2: 运行，确认失败**
 
 ```bash
-pytest tests/test_time_fmt.py -v
+pytest tests/test_time_utils.py -v
 ```
 
-Expected: `ModuleNotFoundError: No module named 'emoekg._lib.time_fmt'`
+Expected: `ModuleNotFoundError: No module named 'emoekg._lib.time_utils'`
 
 - [ ] **Step 3: 实现最小代码让测试通过**
 
-`emoekg/_lib/time_fmt.py`：
+`emoekg/_lib/time_utils.py`：
 ```python
 """Seconds ↔ HH:MM:SS conversion."""
 
 
-def sec_to_hms(seconds: float) -> str:
+def format_hms(seconds: float) -> str:
     """Convert seconds to HH:MM:SS format (truncate fractional seconds)."""
     s = int(seconds)
     h, rem = divmod(s, 3600)
@@ -328,7 +334,7 @@ def sec_to_hms(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-def hms_to_sec(hms: str) -> int:
+def parse_hms(hms: str) -> int:
     """Parse HH:MM:SS into total seconds."""
     h, m, s = hms.split(":")
     return int(h) * 3600 + int(m) * 60 + int(s)
@@ -337,7 +343,7 @@ def hms_to_sec(hms: str) -> int:
 - [ ] **Step 4: 运行，确认通过**
 
 ```bash
-pytest tests/test_time_fmt.py -v
+pytest tests/test_time_utils.py -v
 ```
 
 Expected: 8 passed
@@ -345,8 +351,8 @@ Expected: 8 passed
 - [ ] **Step 5: Commit**
 
 ```bash
-git add emoekg/_lib/time_fmt.py tests/test_time_fmt.py
-git commit -m "feat(lib): add time_fmt (sec ↔ HH:MM:SS) with tests"
+git add emoekg/_lib/time_utils.py tests/test_time_utils.py
+git commit -m "feat(lib): add time_utils (sec ↔ HH:MM:SS) with tests"
 ```
 
 ---
@@ -1136,7 +1142,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from emoekg._lib.adaptive_window import compute_window_size, slice_by_window
-from emoekg._lib.time_fmt import sec_to_hms
+from emoekg._lib.time_utils import format_hms
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -1177,10 +1183,10 @@ def run(working_dir: Path, force: bool = False) -> None:
 
     # enrich with display fields
     for chunk in chunks:
-        chunk["time_start_hms"] = sec_to_hms(chunk["time_start"])
-        chunk["time_end_hms"] = sec_to_hms(chunk["time_end"])
+        chunk["time_start_hms"] = format_hms(chunk["time_start"])
+        chunk["time_end_hms"] = format_hms(chunk["time_end"])
         chunk["display_danmakus"] = [
-            {"time_hms": sec_to_hms(d["time"]), "text": d["text"]}
+            {"time_hms": format_hms(d["time"]), "text": d["text"]}
             for d in _sample_dense(chunk["danmakus"])
         ]
 
@@ -1193,7 +1199,7 @@ def run(working_dir: Path, force: bool = False) -> None:
     chunks_md.write_text(
         tpl.render(
             meta=meta,
-            duration_hms=sec_to_hms(duration),
+            duration_hms=format_hms(duration),
             total_danmaku=len(dms),
             window_size=window_size,
             chunks=chunks,
@@ -2330,7 +2336,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from emoekg._lib.plutchik import COLORS
-from emoekg._lib.time_fmt import sec_to_hms
+from emoekg._lib.time_utils import format_hms
 from emoekg._lib.adaptive_window import compute_window_size
 
 
@@ -2366,7 +2372,7 @@ def run(working_dir: Path, with_video: bool = False, force: bool = False) -> Non
     tpl = env.get_template("report.html.j2")
     html = tpl.render(
         meta=meta,
-        duration_hms=sec_to_hms(meta["duration_sec"]),
+        duration_hms=format_hms(meta["duration_sec"]),
         window_size=compute_window_size(meta["duration_sec"]),
         total_danmaku=len(dms),
         chunks_count=len(scores),
@@ -3155,7 +3161,7 @@ Plan 已完成，保存在 `emoekg/docs/2026-05-07-emoekg-plan.md`。**24 个 Ta
 | Phase | Tasks | 说明 |
 |---|---|---|
 | 0 初始化 | 1–2 | 仓库骨架、pytest 配置 |
-| 1 底层工具 | 3–6 | time_fmt / plutchik / bv_parser / adaptive_window |
+| 1 底层工具 | 3–6 | time_utils / plutchik / bv_parser / adaptive_window |
 | 2 弹幕抓取 | 7–8 | danmaku_client + Stage 1 |
 | 3 切片 | 9–10 | chunks 模板 + Stage 2 |
 | 4 算法 | 11–13 | 峰值/谷值 + JS 散度 + 佐证选取 |

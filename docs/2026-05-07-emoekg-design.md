@@ -128,7 +128,7 @@ emoekg/
 │       ├── plutchik.py             # 8 维情绪 schema + 颜色 + 关键词表
 │       ├── turnpoint_algo.py       # 峰值检测 + JS 散度
 │       ├── evidence_picker.py      # 转折点佐证弹幕选取
-│       └── time_fmt.py             # 秒 ↔ 00:12:34
+│       └── time_utils.py           # 秒 ↔ 00:12:34 + progress(ms) 归一化
 │
 ├── templates/
 │   ├── report.html.j2              # 主 HTML 模板（含 ECharts 内联）
@@ -534,7 +534,7 @@ scipy>=1.10.0
 - `adaptive_window.py`：不同视频时长 → 窗口大小正确
 - `turnpoint_algo.py`：给定合成 scores 曲线 → 能找出预埋的峰值和骤变
 - `evidence_picker.py`：给定 danmaku + 目标维度 → 返回的 5 条弹幕都合理（关键词命中/长度优先）
-- `time_fmt.py`：秒 ↔ 格式化字符串
+- `time_utils.py`：秒 ↔ 格式化字符串 + 弹幕 progress(ms) → 秒 归一化
 
 ### 11.2 集成测试（手动）
 
