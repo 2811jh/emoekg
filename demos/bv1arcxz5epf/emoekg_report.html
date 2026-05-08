@@ -457,15 +457,100 @@ section.zone { margin-top: 72px; }
   border: 1px solid var(--n-4);
   background: var(--n-1);
 }
-#ecg-chart { width: 100%; height: 460px; }
+/* Relative box wrapping only the canvas + the decorative overlays.
+   We anchor the ECG grid / sweep to the canvas so their insets match
+   ECharts' grid offsets (top:44 right:24 bottom:58 left:48) exactly. */
+.ecg-canvas-box {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+#ecg-chart { width: 100%; height: 460px; position: relative; z-index: 1; }
+
+/* --- ECG "paper" grid (behind the chart, very subtle) ---
+   Two layers: a minor 12px grid + a major 60px grid. Only ~5% / 11%
+   opacity so the editorial palette is preserved, but the viewer
+   instinctively reads the panel as clinical-monitor paper, not a flat
+   dark slab. Masked on the edges so it fades into the frame. */
+.ecg-canvas-box::before {
+  content: '';
+  position: absolute;
+  inset: 44px 24px 58px 48px;   /* matches ECharts grid */
+  pointer-events: none;
+  z-index: 2;
+  background-image:
+    linear-gradient(to right,  rgba(235,94,40,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(235,94,40,0.05) 1px, transparent 1px),
+    linear-gradient(to right,  rgba(235,94,40,0.11) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(235,94,40,0.11) 1px, transparent 1px);
+  background-size: 12px 12px, 12px 12px, 60px 60px, 60px 60px;
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(to right,
+    transparent 0%, #000 6%, #000 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right,
+    transparent 0%, #000 6%, #000 94%, transparent 100%);
+}
+
+/* --- ECG sweep (clinical monitor cursor) ---
+   One wafer-thin traveling line + a soft trailing afterglow. Period 9s —
+   slow enough to feel like instrumentation, fast enough to feel alive.
+   The gradient's right edge is the cursor head; everything left is
+   phosphor trail. Uses `mix-blend-mode: screen` so it adds light over
+   the existing chart traces instead of covering them. */
+.ecg-sweep {
+  position: absolute;
+  inset: 44px 24px 58px 48px;   /* matches ECharts grid */
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+  mask-image: linear-gradient(to right,
+    transparent 0%, #000 3%, #000 97%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right,
+    transparent 0%, #000 3%, #000 97%, transparent 100%);
+}
+.ecg-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 0;
+  width: 22%;
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(235,94,40,0.02) 45%,
+      rgba(235,94,40,0.08) 75%,
+      rgba(235,94,40,0.22) 93%,
+      rgba(235,94,40,0.62) 99%,
+      rgba(235,94,40,0.98) 100%);
+  box-shadow: inset -1px 0 0 0 rgba(235,94,40,0.9);
+  filter: drop-shadow(0 0 6px rgba(235,94,40,0.35));
+  mix-blend-mode: screen;
+  animation: ecg-sweep 9s linear infinite;
+  will-change: transform;
+}
+@keyframes ecg-sweep {
+  0%   { transform: translateX(-22%); }
+  100% { transform: translateX(455%); }   /* 100/22 ≈ 4.55 → exits right edge */
+}
+/* Freeze the sweep for reduced-motion preference. The static grid still
+   reads as "monitor"; the sweep is decorative only. */
+@media (prefers-reduced-motion: reduce) {
+  .ecg-sweep::before { animation: none; opacity: 0; }
+}
 
 /* --- ANALYSIS SPLIT ------------------------------------------------------- */
 
 .split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr) — not `1fr` — is the standard fix for "grid track
+     blowout": without it, a single unbreakable danmaku like 「9999...9」
+     (90 chars, no spaces) forces its column wider, which steals width
+     from the other column. Every filter change re-picks different
+     danmakus → column widths would drift. This locks both at 50/50. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 48px;
 }
+.split > * { min-width: 0; }     /* children can shrink below intrinsic size */
 @media (max-width: 1040px) { .split { grid-template-columns: 1fr; gap: 56px; } }
 
 .column-head {
@@ -584,6 +669,10 @@ section.zone { margin-top: 72px; }
   padding: 8px 0 8px 22px;
   position: relative;
   font-style: italic;
+  /* Force unbreakable strings (e.g. "9999...9" copypasta) to wrap, so the
+     evidence list never pushes its parent column wider than 1fr. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .tp .evidence li::before {
   content: '“';
@@ -698,7 +787,9 @@ section.zone { margin-top: 72px; }
 #danmaku-list .item .text {
   color: var(--n-8);
   word-break: break-all;
+  overflow-wrap: anywhere;
   line-height: 1.5;
+  min-width: 0;                /* allow the 1fr track to actually be 1fr */
 }
 #danmaku-list .item .dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -1160,7 +1251,10 @@ section.zone { margin-top: 72px; }
       </span>
       <span class="hint">悬停查看每 45s 窗口的完整情绪读数；拖动下方滑块缩放时间范围</span>
     </div>
-    <div id="ecg-chart"></div>
+    <div class="ecg-canvas-box">
+      <div id="ecg-chart"></div>
+      <div class="ecg-sweep" aria-hidden="true"></div>
+    </div>
   </div>
 </section>
 
