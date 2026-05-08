@@ -70,7 +70,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  background: var(--n-0);
+  background-color: #08090b;
   color: var(--n-8);
   font-family: var(--ff-sans);
   font-size: var(--fs-body);
@@ -79,12 +79,26 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-variant-numeric: tabular-nums;
-  /* A very subtle film-grain via CSS — just enough that pure dark surfaces
-     don't feel like screens of dead pixels. Remove the line for a fully
-     flat look. */
-  background-image: radial-gradient(ellipse at top,
-    rgba(235, 94, 40, 0.03) 0%,
-    transparent 45%);
+  /* Four-layer atmospheric background so pure-dark never reads as "dead
+     pixels". All four are fixed-attached so the lighting stays consistent
+     throughout a long scrolled report, instead of repeating per viewport.
+       1. Warm amber bleed from top-left    (accent, diffuse)
+       2. Cool reflection highlight, top    (screen ambient)
+       3. Echo amber bleed from bottom-right (opposite-corner balance)
+       4. Fine white dot grain at 3px grid  (film-like texture)
+     Peak intensities are all <7% so the overall impression stays
+     near-black; the variation is subliminal, not decorative. */
+  background-image:
+    radial-gradient(ellipse 70% 55% at 3% -8%,
+      rgba(235, 94, 40, 0.065) 0%, transparent 52%),
+    radial-gradient(ellipse 95% 42% at 50% 0%,
+      rgba(255, 255, 255, 0.028) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 35% at 98% 102%,
+      rgba(235, 94, 40, 0.035) 0%, transparent 55%),
+    radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: auto, auto, auto, 3px 3px;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-attachment: fixed, fixed, fixed, fixed;
 }
 
 a { color: var(--acc); text-decoration: none; }
@@ -226,43 +240,158 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 
 /* --- SECTION SCAFFOLD ----------------------------------------------------- */
+/* Each section is an "instrument panel" — a named design language for the
+   report: framed channel with an orange rail on the left, a top bezel
+   light hairline, subtle dot grain on the surface, and a single pulsing
+   live indicator on the right of the header. The ECG metaphor from the
+   core chart extends all the way down into the report's section grammar. */
 
-section.zone { margin-top: 72px; }
+:root {
+  --zone-bg:        #0d0d10;
+  --zone-bg-hi:     #111116;
+  --zone-border:    #25262b;
+  --zone-border-hi: #2d2e34;
+  --zone-glow:      rgba(235, 94, 40, 0.55);
+}
+
+section.zone {
+  position: relative;
+  background-color: var(--zone-bg);
+  /* Two-layer surface texture: faint top reflection + fine dot grain.
+     Denser than the body grain so the panel reads as distinctly "framed". */
+  background-image:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.032) 0%, transparent 14%),
+    radial-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 100% 100%, 3px 3px;
+  background-position: 0 0, 0 0;
+  /* Triple shadow: outer border + inner hairline highlight + drop shadow.
+     The dual border creates a subtle frame-in-frame depth that a single
+     1px border can't — the panel feels like a metal plate, not a div. */
+  box-shadow:
+    0 0 0 1px var(--zone-border),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.018),
+    0 28px 56px -32px rgba(0, 0, 0, 0.92);
+  padding: 38px 48px 56px 48px;
+  margin-top: 40px;
+  transition: background-color 260ms ease, box-shadow 260ms ease;
+}
+section.zone + section.zone { margin-top: 28px; }
+section.zone:first-of-type { margin-top: 64px; }
+
+section.zone:hover {
+  background-color: var(--zone-bg-hi);
+  box-shadow:
+    0 0 0 1px var(--zone-border-hi),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.028),
+    0 34px 62px -30px rgba(0, 0, 0, 0.96);
+}
+
+/* Left channel rail — 4px gradient strip with strong halo glow */
+section.zone::before {
+  content: '';
+  position: absolute;
+  left: -1px; top: -1px; bottom: -1px;
+  width: 4px;
+  background: linear-gradient(to bottom,
+    var(--acc) 0%,
+    var(--acc) 34%,
+    rgba(235, 94, 40, 0.30) 85%,
+    rgba(235, 94, 40, 0) 100%);
+  box-shadow:
+    0 0 24px 0 var(--zone-glow),
+    0 0 4px 0 rgba(235, 94, 40, 0.55);
+  transition: box-shadow 260ms ease;
+  z-index: 2;
+}
+section.zone:hover::before {
+  box-shadow:
+    0 0 36px 2px var(--zone-glow),
+    0 0 4px 0 rgba(235, 94, 40, 0.6);
+}
+
+/* Top bezel-light hairline — 1px orange, fades toward the right */
+section.zone::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 4px;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right,
+    var(--acc) 0%,
+    rgba(235, 94, 40, 0.55) 8%,
+    rgba(235, 94, 40, 0.12) 32%,
+    rgba(235, 94, 40, 0) 55%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --- SECTION HEADER ------------------------------------------------------- */
 
 .zone-head {
-  display: grid;
-  grid-template-columns: 80px 1fr auto;
-  align-items: baseline;
-  gap: 24px;
-  padding-bottom: 14px;
-  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 2px 0 22px 0;
+  margin-bottom: 30px;
   border-bottom: 1px solid var(--n-4);
+  position: relative;
 }
+
+/* Channel chip — the "01" token, editorial-mono inside an accent-lit pill */
 .zone-head .no {
   font-family: var(--ff-mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--n-6);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--acc);
+  padding: 7px 14px;
+  border: 1px solid rgba(235, 94, 40, 0.55);
+  background: rgba(235, 94, 40, 0.08);
+  box-shadow:
+    0 0 18px -4px rgba(235, 94, 40, 0.5),
+    inset 0 0 0 1px rgba(235, 94, 40, 0.08);
+  line-height: 1;
+  flex-shrink: 0;
 }
+
 .zone-head h2 {
   margin: 0;
   font-family: var(--ff-serif);
   font-weight: 400;
-  font-size: var(--fs-h1);
+  font-size: 32px;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
   color: var(--n-9);
+  flex: 1;
 }
-.zone-head .aside {
-  font-family: var(--ff-mono);
-  font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--n-6);
+
+/* Aside hidden — the pulsing live dot below absorbs its "status" role */
+.zone-head .aside { display: none; }
+
+/* Live indicator — one 7px pulsing dot, pinned to the top-right, aligned
+   vertically with the chip/title row (not the header midpoint). The magic
+   number in translateY is: -(h2_center) = -(22px_bottom_pad / 2) = -11px */
+.zone-head::after {
+  content: '';
+  position: absolute;
+  top: 50%; right: 0;
+  transform: translate(0, calc(-50% - 11px));
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--acc);
+  box-shadow:
+    0 0 0 3px rgba(235, 94, 40, 0.18),
+    0 0 14px 0 var(--acc);
+  animation: zoneHeartbeat 2.4s ease-in-out infinite;
 }
-.zone-head .aside a { color: var(--n-7); }
-.zone-head .aside a:hover { color: var(--acc); text-decoration: none; }
+@keyframes zoneHeartbeat {
+  0%, 100% { opacity: 1; transform: translate(0, calc(-50% - 11px)) scale(1); }
+  50%      { opacity: 0.45; transform: translate(0, calc(-50% - 11px)) scale(0.82); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zone-head::after { animation: none; }
+}
 
 /* --- EXECUTIVE SUMMARY ---------------------------------------------------- */
 
@@ -281,11 +410,15 @@ section.zone { margin-top: 72px; }
   font-weight: 400;
 }
 .tldr .lede::before {
-  content: '§';
+  content: '';
   display: inline-block;
-  margin-right: 14px;
-  color: var(--acc);
-  font-weight: 400;
+  width: 4px;
+  height: 0.78em;
+  background: var(--acc);
+  margin-right: 16px;
+  vertical-align: baseline;
+  transform: translateY(-0.02em);
+  box-shadow: 0 0 10px -2px var(--acc);
 }
 .tldr .insights {
   display: grid;
@@ -1229,7 +1362,7 @@ section.zone { margin-top: 72px; }
 <!-- =========================== §01 VITALS =========================== -->
 <section class="zone">
   <div class="zone-head">
-    <span class="no">§ 01</span>
+    <span class="no">01</span>
     <h2>全局速览 / Vitals</h2>
     <span class="aside">
       <a href="https://www.bilibili.com/video/{{ meta.bvid }}" target="_blank">
@@ -1243,7 +1376,7 @@ section.zone { margin-top: 72px; }
 <!-- =========================== §02 MONITOR =========================== -->
 <section class="zone">
   <div class="zone-head">
-    <span class="no">§ 02</span>
+    <span class="no">02</span>
     <h2>影像与心电 / Monitor</h2>
     <span class="aside">Lead I + Lead II</span>
   </div>
@@ -1281,7 +1414,7 @@ section.zone { margin-top: 72px; }
 <!-- =========================== §03 PLUTCHIK WHEEL =========================== -->
 <section class="zone">
   <div class="zone-head">
-    <span class="no">§ 03</span>
+    <span class="no">03</span>
     <h2>情绪盘 / Plutchik Wheel</h2>
     <span class="aside">8 dimensions · click to inspect</span>
   </div>
@@ -1316,7 +1449,7 @@ section.zone { margin-top: 72px; }
 <!-- =========================== §04 ANALYSIS =========================== -->
 <section class="zone">
   <div class="zone-head">
-    <span class="no">§ 04</span>
+    <span class="no">04</span>
     <h2>转折与原声 / Analysis</h2>
     <span class="aside">{{ turnpoints_count }} turnpoints · {{ total_danmaku }} danmakus</span>
   </div>
@@ -1360,7 +1493,7 @@ section.zone { margin-top: 72px; }
 <!-- =========================== §05 LEGEND =========================== -->
 <section class="zone">
   <div class="zone-head">
-    <span class="no">§ 05</span>
+    <span class="no">05</span>
     <h2>维度图例 / Legend</h2>
     <span class="aside">Plutchik 8-dim</span>
   </div>
