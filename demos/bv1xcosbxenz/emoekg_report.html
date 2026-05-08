@@ -1164,10 +1164,45 @@ section.zone { margin-top: 72px; }
   </div>
 </section>
 
-<!-- =========================== §03 ANALYSIS =========================== -->
+<!-- =========================== §03 PLUTCHIK WHEEL =========================== -->
 <section class="zone">
   <div class="zone-head">
     <span class="no">§ 03</span>
+    <h2>情绪盘 / Plutchik Wheel</h2>
+    <span class="aside">8 dimensions · click to inspect</span>
+  </div>
+
+  <div class="wheel-section">
+    <div class="wheel-stage">
+      <svg id="plutchik-wheel" viewBox="-200 -200 400 400"
+           aria-label="Plutchik emotion wheel" role="img"></svg>
+      <div class="wheel-hub">
+        <span class="hub-k">Dominant</span>
+        <span class="hub-v" id="wheel-hub-value">—</span>
+      </div>
+    </div>
+    <aside class="wheel-info" id="wheel-info">
+      <div class="title">
+        <span class="cn">情绪盘</span>
+        <span class="en">Plutchik Wheel</span>
+      </div>
+      <div class="opposite">点击任一花瓣 · Click any petal</div>
+    </aside>
+  </div>
+
+  <div class="wheel-pairs">
+    <span class="k">对立对 · Opposite pairs</span>
+    <span class="p" data-pair="joy,sadness">喜悦 ↔ 悲伤</span>
+    <span class="p" data-pair="trust,disgust">信任 ↔ 厌恶</span>
+    <span class="p" data-pair="fear,anger">恐惧 ↔ 愤怒</span>
+    <span class="p" data-pair="surprise,anticipation">惊奇 ↔ 期待</span>
+  </div>
+</section>
+
+<!-- =========================== §04 ANALYSIS =========================== -->
+<section class="zone">
+  <div class="zone-head">
+    <span class="no">§ 04</span>
     <h2>转折与原声 / Analysis</h2>
     <span class="aside">11 turnpoints · 743 danmakus</span>
   </div>
@@ -1205,41 +1240,6 @@ section.zone { margin-top: 72px; }
       括号里的 <b>变化 +2.0 分 / 10</b> 表示该维度比上一段高了 2 分；
       <b>JS</b> 是 Jensen–Shannon 散度（0–1），衡量相邻两段情绪分布的差异——越接近 1，情绪"换频道"越彻底。
     </span>
-  </div>
-</section>
-
-<!-- =========================== §04 PLUTCHIK WHEEL =========================== -->
-<section class="zone">
-  <div class="zone-head">
-    <span class="no">§ 04</span>
-    <h2>情绪盘 / Plutchik Wheel</h2>
-    <span class="aside">8 dimensions · click to inspect</span>
-  </div>
-
-  <div class="wheel-section">
-    <div class="wheel-stage">
-      <svg id="plutchik-wheel" viewBox="-200 -200 400 400"
-           aria-label="Plutchik emotion wheel" role="img"></svg>
-      <div class="wheel-hub">
-        <span class="hub-k">Dominant</span>
-        <span class="hub-v" id="wheel-hub-value">—</span>
-      </div>
-    </div>
-    <aside class="wheel-info" id="wheel-info">
-      <div class="title">
-        <span class="cn">情绪盘</span>
-        <span class="en">Plutchik Wheel</span>
-      </div>
-      <div class="opposite">点击任一花瓣 · Click any petal</div>
-    </aside>
-  </div>
-
-  <div class="wheel-pairs">
-    <span class="k">对立对 · Opposite pairs</span>
-    <span class="p" data-pair="joy,sadness">喜悦 ↔ 悲伤</span>
-    <span class="p" data-pair="trust,disgust">信任 ↔ 厌恶</span>
-    <span class="p" data-pair="fear,anger">恐惧 ↔ 愤怒</span>
-    <span class="p" data-pair="surprise,anticipation">惊奇 ↔ 期待</span>
   </div>
 </section>
 
