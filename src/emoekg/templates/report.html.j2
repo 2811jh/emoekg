@@ -951,25 +951,57 @@ section.zone { margin-top: 72px; }
 .wheel-info dl {
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(140px, max-content) 1fr;
-  gap: 12px 24px;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  gap: 16px 24px;
 }
+/* Bilingual labels — Chinese primary (sans, semibold), English secondary
+   (mono uppercase, muted). Stack on two lines inside the same <dt>. */
 .wheel-info dt {
-  font-family: var(--ff-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--n-6);
   padding-top: 5px;
+  line-height: 1.3;
 }
-.wheel-info dd {
-  margin: 0;
-  font-family: var(--ff-serif);
-  font-size: 15px;
-  line-height: 1.55;
+.wheel-info dt .zh {
+  display: block;
+  font-family: var(--ff-sans);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.08em;
   color: var(--n-8);
 }
-.wheel-info dd em { font-style: italic; color: var(--n-9); }
+.wheel-info dt .la {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  margin-top: 3px;
+}
+/* Bilingual values — Chinese serif on top (primary reading line), English
+   italic serif underneath (secondary, editorial-register). Both inherit
+   the info panel's serif voice so they feel like one idea in two tongues. */
+.wheel-info dd {
+  margin: 0;
+  line-height: 1.3;
+}
+.wheel-info dd .zh {
+  display: block;
+  font-family: var(--ff-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--n-9);
+  letter-spacing: 0.005em;
+}
+.wheel-info dd .la {
+  display: block;
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--n-6);
+  margin-top: 3px;
+  letter-spacing: 0.005em;
+}
 .wheel-info .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

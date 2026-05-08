@@ -951,25 +951,57 @@ section.zone { margin-top: 72px; }
 .wheel-info dl {
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(140px, max-content) 1fr;
-  gap: 12px 24px;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  gap: 16px 24px;
 }
+/* Bilingual labels — Chinese primary (sans, semibold), English secondary
+   (mono uppercase, muted). Stack on two lines inside the same <dt>. */
 .wheel-info dt {
-  font-family: var(--ff-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--n-6);
   padding-top: 5px;
+  line-height: 1.3;
 }
-.wheel-info dd {
-  margin: 0;
-  font-family: var(--ff-serif);
-  font-size: 15px;
-  line-height: 1.55;
+.wheel-info dt .zh {
+  display: block;
+  font-family: var(--ff-sans);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.08em;
   color: var(--n-8);
 }
-.wheel-info dd em { font-style: italic; color: var(--n-9); }
+.wheel-info dt .la {
+  display: block;
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  margin-top: 3px;
+}
+/* Bilingual values — Chinese serif on top (primary reading line), English
+   italic serif underneath (secondary, editorial-register). Both inherit
+   the info panel's serif voice so they feel like one idea in two tongues. */
+.wheel-info dd {
+  margin: 0;
+  line-height: 1.3;
+}
+.wheel-info dd .zh {
+  display: block;
+  font-family: var(--ff-serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--n-9);
+  letter-spacing: 0.005em;
+}
+.wheel-info dd .la {
+  display: block;
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--n-6);
+  margin-top: 3px;
+  letter-spacing: 0.005em;
+}
 .wheel-info .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2837,62 +2869,108 @@ const DIM_LABEL = {joy:'喜悦',trust:'信任',fear:'恐惧',surprise:'惊奇',
 //
 // `opposite` records the Plutchik dyad. Changing it would break the
 // "Opposite · ... " line in the info panel.
+// ---------- Plutchik wheel info cards ----------
+// Content source: Six Seconds (6seconds.org) "Eight Core Emotions" framework —
+// the canonical educational framing of Plutchik's 8 primaries. Each entry
+// carries four fields in both Chinese (primary — UX research audience is
+// Mandarin-dominant) and English (secondary — preserves the original
+// phrasing for researchers cross-referencing the 6seconds literature):
+//
+//   similar    — 相似情绪 / Similar Words
+//   sensation  — 典型感受 / Typical Sensations
+//   telling    — 这份情绪在告诉你什么 / What is X telling you?
+//   helping    — 这份情绪如何帮助你 / How can X help you?
+//
+// `opposite` records the Plutchik dyad. Changing it breaks the
+// "对立 · ..." line in the info panel.
 const WHEEL_INFO = {
   joy: {
     en: 'Joy', opposite: 'sadness',
-    similar:    'Delighted, Glad',
-    sensations: 'Radiant and open',
-    telling:    'Something valuable is happening',
-    helping:    'Savor it and keep doing what works',
+    similar_zh:   '兴奋、愉快',
+    similar_en:   'Excited, Pleased',
+    sensation_zh: '充满能量与可能性的感觉',
+    sensation_en: 'Sense of energy and possibility',
+    telling_zh:   '生活正在顺利进行',
+    telling_en:   'Life is going well',
+    helping_zh:   '激发创造力、促进连接、赋予能量',
+    helping_en:   'Sparks creativity, connection, gives energy',
   },
   trust: {
     en: 'Trust', opposite: 'disgust',
-    similar:    'Safe, Secure',
-    sensations: 'Settled and warm',
-    telling:    'Someone or something is reliable',
-    helping:    'Build connection and cooperate',
+    similar_zh:   '接纳、安心',
+    similar_en:   'Accepting, Safe',
+    sensation_zh: '温暖',
+    sensation_en: 'Warm',
+    telling_zh:   '这是安全的',
+    telling_en:   'This is safe',
+    helping_zh:   '保持开放、建立连接、结成同盟',
+    helping_en:   'Be open, connect, build alliance',
   },
   fear: {
     en: 'Fear', opposite: 'anger',
-    similar:    'Scared, Anxious',
-    sensations: 'Tight and tingly',
-    telling:    'Something feels dangerous',
-    helping:    'Protect yourself and get ready',
+    similar_zh:   '紧张、害怕',
+    similar_en:   'Stressed, Scared',
+    sensation_zh: '焦躁不安',
+    sensation_en: 'Agitated',
+    telling_zh:   '我在乎的东西正处于风险中',
+    telling_en:   'Something I care about is at risk',
+    helping_zh:   '守护我们所珍视的事物',
+    helping_en:   'Protect what we care about',
   },
   surprise: {
     en: 'Surprise', opposite: 'anticipation',
-    similar:    'Startled, Amazed',
-    sensations: 'Alert and sudden',
-    telling:    'Something unexpected just happened',
-    helping:    'Pause, re-evaluate, update the map',
+    similar_zh:   '震惊、出乎意料',
+    similar_en:   'Shocked, Unexpected',
+    sensation_zh: '心跳加速',
+    sensation_en: 'Heart pounding',
+    telling_zh:   '有新的事情正在发生',
+    telling_en:   'Something new happened',
+    helping_zh:   '关注此刻正在眼前展开的一切',
+    helping_en:   "Pay attention to what's right here",
   },
   sadness: {
     en: 'Sadness', opposite: 'joy',
-    similar:    'Down, Blue',
-    sensations: 'Heavy and slow',
-    telling:    'You lost something that mattered',
-    helping:    'Grieve, reflect, ask for support',
+    similar_zh:   '失落、失去',
+    similar_en:   'Bummed, Loss',
+    sensation_zh: '沉重',
+    sensation_en: 'Heavy',
+    telling_zh:   '所爱正在远去',
+    telling_en:   'Love is going away',
+    helping_zh:   '聚焦于我们真正重视的事物',
+    helping_en:   "Focus on what's important to us",
   },
   disgust: {
     en: 'Disgust', opposite: 'trust',
-    similar:    'Repulsed, Grossed out',
-    sensations: 'Rejecting and recoiling',
-    telling:    'Something is not right for you',
-    helping:    'Set boundaries and turn away',
+    similar_zh:   '不信任、拒斥',
+    similar_en:   'Distrust, Rejecting',
+    sensation_zh: '苦涩、排斥',
+    sensation_en: 'Bitter & unwanted',
+    telling_zh:   '出了问题；规则被打破了',
+    telling_en:   'Wrong; rules are violated',
+    helping_zh:   '识别不安全或不对劲的信号',
+    helping_en:   'Notice something unsafe or wrong',
   },
   anger: {
     en: 'Anger', opposite: 'fear',
-    similar:    'Mad, Fierce',
-    sensations: 'Strong and heated',
-    telling:    'Something is in the way',
-    helping:    'Energize to break through a barrier',
+    similar_zh:   '暴怒、激烈',
+    similar_en:   'Mad, Fierce',
+    sensation_zh: '强烈而灼热',
+    sensation_en: 'Strong and heated',
+    telling_zh:   '有东西挡在了去路上',
+    telling_en:   'Something is in the way',
+    helping_zh:   '聚集能量突破障碍',
+    helping_en:   'Energize to break through a barrier',
   },
   anticipation: {
     en: 'Anticipation', opposite: 'surprise',
-    similar:    'Curious, Considering',
-    sensations: 'Alert and exploring',
-    telling:    'Change is happening',
-    helping:    'Look ahead, look at what might be coming',
+    similar_zh:   '好奇、斟酌',
+    similar_en:   'Curious, Considering',
+    sensation_zh: '警觉、探索',
+    sensation_en: 'Alert and exploring',
+    telling_zh:   '变化正在发生',
+    telling_en:   'Change is happening',
+    helping_zh:   '望向前方，预见可能到来的事',
+    helping_en:   'Look ahead, look at what might be coming',
   },
 };
 
@@ -3462,12 +3540,19 @@ function renderWheel() {
         <span class="en">${info.en}</span>
         <span class="badge" style="background:${CHART_COLORS[d]}">SELECTED</span>
       </div>
-      <div class="opposite">Opposite · ${DIM_LABEL[info.opposite]} (${opp.en})</div>
+      <div class="opposite">对立情绪 Opposite · ${DIM_LABEL[info.opposite]} ↔ ${opp.en}</div>
       <dl>
-        <dt>Similar words</dt><dd><em>${info.similar}</em></dd>
-        <dt>Typical sensations</dt><dd><em>${info.sensations}</em></dd>
-        <dt>What is ${info.en} telling you?</dt><dd><em>${info.telling}</em></dd>
-        <dt>How can ${info.en} help you?</dt><dd><em>${info.helping}</em></dd>
+        <dt><span class="zh">相似情绪</span><span class="la">Similar Words</span></dt>
+        <dd><span class="zh">${info.similar_zh}</span><span class="la">${info.similar_en}</span></dd>
+
+        <dt><span class="zh">典型感受</span><span class="la">Typical Sensations</span></dt>
+        <dd><span class="zh">${info.sensation_zh}</span><span class="la">${info.sensation_en}</span></dd>
+
+        <dt><span class="zh">在告诉你</span><span class="la">Telling You</span></dt>
+        <dd><span class="zh">${info.telling_zh}</span><span class="la">${info.telling_en}</span></dd>
+
+        <dt><span class="zh">如何帮助你</span><span class="la">Helping You</span></dt>
+        <dd><span class="zh">${info.helping_zh}</span><span class="la">${info.helping_en}</span></dd>
       </dl>
       <div class="stats">
         <div class="cell">
