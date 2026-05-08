@@ -52,8 +52,81 @@ const fmtHMS = (s) => {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 };
 const DIMS = ['joy','trust','fear','surprise','sadness','disgust','anger','anticipation'];
-const DIM_LABEL = {joy:'喜悦',trust:'信任',fear:'恐惧',surprise:'惊讶',
+// Plutchik's canonical bilingual labels. Four opposing pairs:
+//   joy ↔ sadness · trust ↔ disgust · fear ↔ anger · surprise ↔ anticipation
+// Note on "惊奇" (not "惊讶"): in the standard Chinese translation of
+// Plutchik's wheel, `surprise` is rendered as 惊奇 (a cognitive/appraisal
+// reaction) while 惊讶 tends to conflate with shock/startle. Keeping
+// 惊奇 here matches academic Plutchik glosses and the 6seconds.org poster.
+const DIM_LABEL = {joy:'喜悦',trust:'信任',fear:'恐惧',surprise:'惊奇',
                    sadness:'悲伤',disgust:'厌恶',anger:'愤怒',anticipation:'期待'};
+
+// 8-emotion reference card for the Plutchik-wheel widget. Each entry follows
+// the Six Seconds EQ card format: Similar words → Typical sensations →
+// What is X telling you? → How can X help you?  The text is intentionally
+// kept in English to preserve the authoritative source phrasing; a Chinese
+// headline is shown alongside via DIM_LABEL.
+//
+// `opposite` records the Plutchik dyad. Changing it would break the
+// "Opposite · ... " line in the info panel.
+const WHEEL_INFO = {
+  joy: {
+    en: 'Joy', opposite: 'sadness',
+    similar:    'Delighted, Glad',
+    sensations: 'Radiant and open',
+    telling:    'Something valuable is happening',
+    helping:    'Savor it and keep doing what works',
+  },
+  trust: {
+    en: 'Trust', opposite: 'disgust',
+    similar:    'Safe, Secure',
+    sensations: 'Settled and warm',
+    telling:    'Someone or something is reliable',
+    helping:    'Build connection and cooperate',
+  },
+  fear: {
+    en: 'Fear', opposite: 'anger',
+    similar:    'Scared, Anxious',
+    sensations: 'Tight and tingly',
+    telling:    'Something feels dangerous',
+    helping:    'Protect yourself and get ready',
+  },
+  surprise: {
+    en: 'Surprise', opposite: 'anticipation',
+    similar:    'Startled, Amazed',
+    sensations: 'Alert and sudden',
+    telling:    'Something unexpected just happened',
+    helping:    'Pause, re-evaluate, update the map',
+  },
+  sadness: {
+    en: 'Sadness', opposite: 'joy',
+    similar:    'Down, Blue',
+    sensations: 'Heavy and slow',
+    telling:    'You lost something that mattered',
+    helping:    'Grieve, reflect, ask for support',
+  },
+  disgust: {
+    en: 'Disgust', opposite: 'trust',
+    similar:    'Repulsed, Grossed out',
+    sensations: 'Rejecting and recoiling',
+    telling:    'Something is not right for you',
+    helping:    'Set boundaries and turn away',
+  },
+  anger: {
+    en: 'Anger', opposite: 'fear',
+    similar:    'Mad, Fierce',
+    sensations: 'Strong and heated',
+    telling:    'Something is in the way',
+    helping:    'Energize to break through a barrier',
+  },
+  anticipation: {
+    en: 'Anticipation', opposite: 'surprise',
+    similar:    'Curious, Considering',
+    sensations: 'Alert and exploring',
+    telling:    'Change is happening',
+    helping:    'Look ahead, look at what might be coming',
+  },
+};
 
 // ---------- video player ----------
 // videoApi surface:
@@ -501,6 +574,171 @@ function scrollToTP(id) {
   }
 }
 
+// ---------- Plutchik wheel ----------
+// Interactive SVG re-imagining of Plutchik's classic 8-emotion wheel, with
+// two research-oriented twists:
+//   1. Petal *length* encodes this video's mean score for that dimension
+//      — so the overall silhouette is a per-video emotion fingerprint.
+//   2. Clicking a petal surfaces the Six-Seconds reference card
+//      (Similar / Sensations / Telling / Helping) next to the numerical
+//      readouts (avg score, share, timestamp of peak).
+//
+// Opposites are diagonally placed (top–bottom, etc.) so the reader can
+// read dyads at a glance: joy↔sadness, trust↔disgust, fear↔anger,
+// surprise↔anticipation.
+function renderWheel() {
+  const svg = $('plutchik-wheel');
+  if (!svg) return;
+
+  // --- stats ---
+  // Exclude SPARSE chunks (n_danmaku < 3) — otherwise the opening seconds
+  // of a video, which typically score 0 across the board, would drag every
+  // average toward zero and flatten the wheel.
+  const nonSparse = SCORES.filter(s => s.n_danmaku >= 3);
+  const base = nonSparse.length > 0 ? nonSparse : SCORES;
+  const totalSum = base.reduce((s, r) =>
+    s + DIMS.reduce((x, d) => x + r[d], 0), 0) || 1;
+
+  const perDim = {};
+  DIMS.forEach(d => {
+    const vs = base.map(r => r[d]);
+    const sum = vs.reduce((a, b) => a + b, 0);
+    const avg = vs.length ? sum / vs.length : 0;
+    const peak = base.reduce((best, r) =>
+      (!best || r[d] > best[d]) ? r : best, null);
+    const peakVal = peak ? peak[d] : 0;
+    perDim[d] = {
+      sum, avg, share: sum / totalSum,
+      peakTime: peak ? peak.time_start : 0,
+      peakVal,
+    };
+  });
+
+  // --- geometry ---
+  // Petal radius clamped to [R_MIN, R_MAX]. R_MIN keeps a tiny petal
+  // readable even when a dimension is essentially absent. Saturation at
+  // avg=8 rather than 10: a "10 out of 10" wheel would leave no headroom
+  // and a typical strong video peaks around 5–7 on averages.
+  const R_MIN = 48, R_MAX = 150;
+  const SAT = 8;
+  const HW_RAD = 22 * Math.PI / 180;   // petal half-width angle
+
+  // Subtle reference rings at 2/5/8 — the "gridlines" of the wheel.
+  const rings = [2, 5, 8].map(v => {
+    const r = R_MIN + (R_MAX - R_MIN) * (v / SAT);
+    return `<circle class="wheel-ring" r="${r.toFixed(1)}"/>`;
+  }).join('');
+
+  const petals = DIMS.map((d, i) => {
+    const col = CHART_COLORS[d];
+    const info = WHEEL_INFO[d];
+    const theta = (-90 + i * 45) * Math.PI / 180;  // joy at 12 o'clock, cw
+    const L = R_MIN + (R_MAX - R_MIN) * Math.min(1, perDim[d].avg / SAT);
+
+    const tx = L * Math.cos(theta), ty = L * Math.sin(theta);
+    const mid = L * 0.55;
+    const lx = mid * Math.cos(theta - HW_RAD), ly = mid * Math.sin(theta - HW_RAD);
+    const rx = mid * Math.cos(theta + HW_RAD), ry = mid * Math.sin(theta + HW_RAD);
+    const path = `M 0 0 Q ${lx.toFixed(1)} ${ly.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)} Q ${rx.toFixed(1)} ${ry.toFixed(1)} 0 0 Z`;
+
+    // Score badge sits at ~60% of petal length, centered on the axis.
+    const badgeR = L * 0.6;
+    const bx = badgeR * Math.cos(theta), by = badgeR * Math.sin(theta);
+
+    // Chinese/English labels float just outside the petal tip. The
+    // text-anchor follows the horizontal component so labels never
+    // overlap the petal: top/bottom labels center, right-side start,
+    // left-side end.
+    const labelR = L + 22;
+    const lbx = labelR * Math.cos(theta), lby = labelR * Math.sin(theta);
+    const anchor = Math.abs(Math.cos(theta)) < 0.25 ? 'middle'
+                 : Math.cos(theta) > 0            ? 'start'
+                 :                                   'end';
+
+    return `
+      <g class="wheel-emo" data-dim="${d}" style="--emo:${col}">
+        <path class="wheel-petal" d="${path}"/>
+        <text class="wheel-score" x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
+              text-anchor="middle" dominant-baseline="middle">${perDim[d].avg.toFixed(1)}</text>
+        <text class="wheel-label-cn" x="${lbx.toFixed(1)}" y="${(lby - 7).toFixed(1)}"
+              text-anchor="${anchor}" dominant-baseline="middle">${DIM_LABEL[d]}</text>
+        <text class="wheel-label-en" x="${lbx.toFixed(1)}" y="${(lby + 8).toFixed(1)}"
+              text-anchor="${anchor}" dominant-baseline="middle">${info.en}</text>
+      </g>`;
+  }).join('');
+
+  svg.innerHTML = rings + petals;
+
+  // --- hub: top emotion of the entire video ---
+  const topDim = DIMS.reduce((a, b) => perDim[a].sum > perDim[b].sum ? a : b);
+  const hubEl = $('wheel-hub-value');
+  if (hubEl) {
+    hubEl.textContent = DIM_LABEL[topDim];
+    hubEl.style.color = CHART_COLORS[topDim];
+  }
+
+  // --- info panel + selection state ---
+  const infoBox = $('wheel-info');
+  const selectDim = (d) => {
+    svg.querySelectorAll('.wheel-emo').forEach(g =>
+      g.classList.toggle('active', g.dataset.dim === d));
+    svg.querySelectorAll('.wheel-emo').forEach(g =>
+      g.classList.toggle('dimmed', g.dataset.dim !== d));
+    const info = WHEEL_INFO[d];
+    const st = perDim[d];
+    const opp = WHEEL_INFO[info.opposite];
+    const hasPeak = st.peakVal > 0;
+    infoBox.innerHTML = `
+      <div class="title">
+        <span class="cn">${DIM_LABEL[d]}</span>
+        <span class="en">${info.en}</span>
+        <span class="badge" style="background:${CHART_COLORS[d]}">SELECTED</span>
+      </div>
+      <div class="opposite">Opposite · ${DIM_LABEL[info.opposite]} (${opp.en})</div>
+      <dl>
+        <dt>Similar words</dt><dd><em>${info.similar}</em></dd>
+        <dt>Typical sensations</dt><dd><em>${info.sensations}</em></dd>
+        <dt>What is ${info.en} telling you?</dt><dd><em>${info.telling}</em></dd>
+        <dt>How can ${info.en} help you?</dt><dd><em>${info.helping}</em></dd>
+      </dl>
+      <div class="stats">
+        <div class="cell">
+          <span class="k">Avg score</span>
+          <span class="v">${st.avg.toFixed(1)}<b> / 10</b></span>
+        </div>
+        <div class="cell">
+          <span class="k">Share</span>
+          <span class="v">${(st.share * 100).toFixed(0)}<b>%</b></span>
+        </div>
+        <div class="cell ${hasPeak ? 'seekable' : ''}"
+             ${hasPeak ? `data-seek="${st.peakTime}"` : ''}>
+          <span class="k">Peak @</span>
+          <span class="v">${hasPeak ? fmtHMS(st.peakTime) : '—'}<b>${hasPeak ? ` / ${st.peakVal}` : ''}</b></span>
+        </div>
+      </div>`;
+    const seekEl = infoBox.querySelector('[data-seek]');
+    if (seekEl) seekEl.addEventListener('click',
+      () => seekAll(parseFloat(seekEl.dataset.seek)));
+  };
+
+  // petal click → select
+  svg.addEventListener('click', (e) => {
+    const g = e.target.closest('.wheel-emo');
+    if (g) selectDim(g.dataset.dim);
+  });
+
+  // opposite-pair chips → select the left-side of the pair
+  document.querySelectorAll('.wheel-pairs .p').forEach(el => {
+    el.addEventListener('click', () => {
+      const [a] = el.dataset.pair.split(',');
+      selectDim(a);
+    });
+  });
+
+  // Default selection: whatever emotion dominates the video overall.
+  selectDim(topDim);
+}
+
 // ---------- legend ----------
 function renderLegend() {
   // The legend bridges the two palettes: the big swatch uses the muted
@@ -524,6 +762,7 @@ mountVideo();
 if (SCORES.length > 0) {
   renderOverview();
   renderChart();
+  renderWheel();
 }
 renderDanmakuList();
 renderTurnpoints();
