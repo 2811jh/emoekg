@@ -340,6 +340,49 @@ function renderChart() {
     symbol: tp.direction === 'up' ? 'triangle' : 'pin',
     symbolSize: 12,
     label: {show: false},
+    // Hover feedback — glow + scale, tells the researcher the dot is clickable.
+    emphasis: {
+      itemStyle: {shadowColor: ACC, shadowBlur: 12, borderColor: ACC, borderWidth: 2},
+      scale: 1.35,
+      label: {show: false},
+    },
+    // Per-point tooltip — overrides the chart-level axis tooltip when hovering
+    // the triangle itself. Tells the researcher what TP this is, what emotion
+    // drives it, and that it's clickable.
+    tooltip: {
+      show: true,
+      trigger: 'item',
+      backgroundColor: '#111113',
+      borderColor: ACC,
+      borderWidth: 1,
+      padding: [10, 12],
+      textStyle: {color: INK, fontSize: 12, fontFamily: 'inherit'},
+      extraCssText: 'box-shadow:0 4px 24px rgba(0,0,0,.6); border-radius:0; max-width:260px;',
+      formatter: () => {
+        const ff_mono = "ui-monospace,'SF Mono','Menlo',monospace";
+        const dimLabel = DIM_LABEL[tp.main_dimension] || tp.main_dimension;
+        const typeLabel = tp.type === 'peak' ? 'PEAK'
+                        : tp.type === 'valley' ? 'VALLEY'
+                        : 'SHIFT';
+        const detail = tp.detail || tp.description || '';
+        return `
+          <div style="font-family:${ff_mono};font-size:10px;letter-spacing:.18em;color:${ACC};text-transform:uppercase;margin-bottom:6px">
+            ${tp.turnpoint_id} · ${typeLabel}
+          </div>
+          <div style="margin:4px 0;display:flex;justify-content:space-between;gap:16px;font-size:13px">
+            <span style="color:${INK_HI}">${dimLabel}</span>
+            <b style="font-family:${ff_mono};color:${ACC}">${tp.magnitude}/10</b>
+          </div>
+          <div style="font-family:${ff_mono};font-size:10px;color:${INK_MUTED};margin-top:4px">
+            t = ${fmtHMS(tp.time_start)} – ${fmtHMS(tp.time_end)}
+          </div>
+          ${detail ? `<div style="font-size:11px;color:${INK};margin-top:8px;line-height:1.5">${detail}</div>` : ''}
+          <div style="font-size:10px;color:${ACC};margin-top:8px;letter-spacing:.05em;border-top:1px solid ${LINE};padding-top:6px">
+            → 点击同步视频至此时刻
+          </div>
+        `;
+      },
+    },
   }));
   series[0].markPoint = {data: markPoints};
 
@@ -429,7 +472,7 @@ function renderChart() {
   chart.on('click', (params) => {
     if (params.componentType === 'markPoint') {
       const tp = TURNPOINTS.find(t => t.turnpoint_id === params.name);
-      if (tp) { scrollToTP(tp.turnpoint_id); seekAll(tp.time_start); return; }
+      if (tp) { seekAll(tp.time_start); return; }
     }
     if (params.value && params.value[0] !== undefined) {
       seekAll(params.value[0]);
