@@ -1,123 +1,83 @@
 [
   {
-    "chunk_id": "C006",
-    "chunk_index": 5,
+    "chunk_id": "C007",
+    "chunk_index": 6,
     "type": "peak",
-    "main_dimension": "surprise",
+    "main_dimension": "joy",
     "direction": "up",
-    "magnitude": 8.0,
-    "description": "surprise 达到 8/10",
+    "magnitude": 9.0,
+    "description": "joy 达到 9/10",
     "detail": "局部峰值",
     "turnpoint_id": "TP01",
     "evidence_danmakus": [
       {
-        "time": 248.106,
-        "text": "冷知识 铁傀儡上的藤条是它原本的颜色他原来不是白的",
-        "color": 16707842
-      },
-      {
-        "time": 248.32,
-        "text": "call you name 进击的巨人的插曲",
-        "color": 16777215
-      },
-      {
-        "time": 228.094,
-        "text": "为什么要放南瓜头？不应该放恶魂的头吗？",
+        "time": 271.827,
+        "text": "文                                            本",
         "color": 15138834
       },
       {
-        "time": 252.334,
-        "text": "BGM是Call Your Name",
-        "color": 16777215
+        "time": 282.145,
+        "text": "还能进化？！！！！！！！！！",
+        "color": 15138834
       },
       {
-        "time": 261.724,
-        "text": "文               本",
-        "color": 9843
+        "time": 284.164,
+        "text": "『领域展开·无量空处』",
+        "color": 41194
+      },
+      {
+        "time": 312.441,
+        "text": "世界最终的答案！42！",
+        "color": 16707842
+      },
+      {
+        "time": 279.477,
+        "text": "请输为什么要入文本？",
+        "color": 15138834
       }
     ],
-    "time_start": 225,
-    "time_end": 270
+    "time_start": 270,
+    "time_end": 315
   },
   {
-    "chunk_id": "C013",
-    "chunk_index": 12,
+    "chunk_id": "C021",
+    "chunk_index": 20,
     "type": "peak",
     "main_dimension": "surprise",
     "direction": "up",
-    "magnitude": 7.0,
-    "description": "surprise 达到 7/10",
+    "magnitude": 6.0,
+    "description": "surprise 达到 6/10",
     "detail": "局部峰值",
     "turnpoint_id": "TP02",
     "evidence_danmakus": [
       {
-        "time": 547.739,
-        "text": "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
-        "color": 16646914
-      },
-      {
-        "time": 569.364,
-        "text": "9999999999999999999999999999999999999999999999999999999999999999999999999999999999",
-        "color": 16646914
-      },
-      {
-        "time": 540.66,
-        "text": "用着最平静的音乐，做着最不平静的事情",
-        "color": 16777215
-      },
-      {
-        "time": 584.035,
-        "text": "Go！乔尼 go ！go！ ",
-        "color": 16777215
-      },
-      {
-        "time": 542.532,
-        "text": "《他是幕后黑手，他就能来》",
+        "time": 915.497,
+        "text": "《谁也无法撼动它的体重》",
         "color": 15138834
+      },
+      {
+        "time": 915.693,
+        "text": "666这位也搬不动吗",
+        "color": 16777215
+      },
+      {
+        "time": 917.968,
+        "text": "就连这位也无能为力吗",
+        "color": 16777215
+      },
+      {
+        "time": 905.76,
+        "text": "《him都拉不动》",
+        "color": 16646914
+      },
+      {
+        "time": 911.441,
+        "text": "哟，还是个小傲娇～",
+        "color": 14811775
       }
     ],
-    "time_start": 540,
-    "time_end": 585
-  },
-  {
-    "chunk_id": "C016",
-    "chunk_index": 15,
-    "type": "peak",
-    "main_dimension": "surprise",
-    "direction": "up",
-    "magnitude": 7.0,
-    "description": "surprise 达到 7/10",
-    "detail": "局部峰值",
-    "turnpoint_id": "TP03",
-    "evidence_danmakus": [
-      {
-        "time": 696.436,
-        "text": "BGM：Luv (sic) pt3 luv(sic)一共有六部曲都很好听",
-        "color": 41194
-      },
-      {
-        "time": 704.958,
-        "text": "我说当时看这一集的时候 为什么会突然又出现一个 ",
-        "color": 16777215
-      },
-      {
-        "time": 706.692,
-        "text": "原来是智轨，我说呢高铁和普轨不同线是正常的。",
-        "color": 11890
-      },
-      {
-        "time": 712.746,
-        "text": "如果不是合集，我都没看懂，我之前看过这一集的",
-        "color": 16777215
-      },
-      {
-        "time": 688.006,
-        "text": "一把抓住，顷刻二维化（doge",
-        "color": 16777215
-      }
-    ],
-    "time_start": 675,
-    "time_end": 720
+    "time_start": 900,
+    "time_end": 945
   },
   {
     "chunk_id": "C025",
@@ -128,7 +88,7 @@
     "magnitude": 7.0,
     "description": "anticipation 达到 7/10",
     "detail": "局部峰值",
-    "turnpoint_id": "TP04",
+    "turnpoint_id": "TP03",
     "evidence_danmakus": [
       {
         "time": 1095.535,
@@ -160,55 +120,15 @@
     "time_end": 1125
   },
   {
-    "chunk_id": "C032",
-    "chunk_index": 31,
-    "type": "peak",
-    "main_dimension": "trust",
-    "direction": "up",
-    "magnitude": 6.0,
-    "description": "trust 达到 6/10",
-    "detail": "局部峰值",
-    "turnpoint_id": "TP05",
-    "evidence_danmakus": [
-      {
-        "time": 1416.096,
-        "text": "中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，中分，这是中分！！！！！",
-        "color": 15138834
-      },
-      {
-        "time": 1438.395,
-        "text": "集齐多个世界的大圣遗骸即可组成超级大圣",
-        "color": 16777215
-      },
-      {
-        "time": 1414.476,
-        "text": "《实现了，但不过实现的是自己没操作》",
-        "color": 15138834
-      },
-      {
-        "time": 1400.914,
-        "text": "的确分身，的确不同地方",
-        "color": 16765698
-      },
-      {
-        "time": 1430.325,
-        "text": "全看过，这辈子我都有了",
-        "color": 16777215
-      }
-    ],
-    "time_start": 1395,
-    "time_end": 1440
-  },
-  {
     "chunk_id": "C036",
     "chunk_index": 35,
     "type": "peak",
     "main_dimension": "joy",
     "direction": "up",
-    "magnitude": 9.0,
-    "description": "joy 达到 9/10",
+    "magnitude": 10.0,
+    "description": "joy 达到 10/10",
     "detail": "局部峰值",
-    "turnpoint_id": "TP06",
+    "turnpoint_id": "TP04",
     "evidence_danmakus": [
       {
         "time": 1609.22,
@@ -248,7 +168,7 @@
     "magnitude": 7.0,
     "description": "surprise 达到 7/10",
     "detail": "局部峰值",
-    "turnpoint_id": "TP07",
+    "turnpoint_id": "TP05",
     "evidence_danmakus": [
       {
         "time": 1829.22,
@@ -288,7 +208,7 @@
     "magnitude": 8.0,
     "description": "trust 达到 8/10",
     "detail": "局部峰值",
-    "turnpoint_id": "TP08",
+    "turnpoint_id": "TP06",
     "evidence_danmakus": [
       {
         "time": 2271.724,
@@ -328,7 +248,7 @@
     "magnitude": 7.0,
     "description": "anticipation 达到 7/10",
     "detail": "局部峰值",
-    "turnpoint_id": "TP09",
+    "turnpoint_id": "TP07",
     "evidence_danmakus": [
       {
         "time": 2811.805,
