@@ -504,6 +504,16 @@ function seekAll(sec) {
   if (videoApi) videoApi.seek(sec);
   highlightDanmakuAt(sec);
   scrollVideoIntoView();
+  // v0.4.0: Panel follows the seek
+  if (typeof PanelStore !== 'undefined') {
+    PanelStore.currentTime = sec;
+    PanelStore.followPaused = false;
+    const rbtn = document.getElementById('panel-return');
+    if (rbtn) rbtn.hidden = true;
+    if (PanelStore.mode === 'follow') scrollToCenter(sec);
+    else scrollToNearest(sec);
+    updateCurrentHighlight();
+  }
 }
 
 function scrollVideoIntoView() {
@@ -1031,9 +1041,10 @@ function formatMMSS(sec) {
 
 function wirePanelEvents() {
   const viewport = document.getElementById('panel-viewport');
+  const returnBtn = document.getElementById('panel-return');
   if (!viewport) return;
 
-  // Re-render visible window on scroll
+  // --- scroll re-render ---
   let raf = null;
   viewport.addEventListener('scroll', () => {
     if (raf) return;
@@ -1044,13 +1055,45 @@ function wirePanelEvents() {
     });
   });
 
-  // Local video mode: timeupdate callback
+  // --- user-initiated scroll pauses follow ---
+  const pauseFollow = () => {
+    if (PanelStore.followPaused) return;
+    if (PanelStore.mode !== 'follow') return;  // no point in browse
+    PanelStore.followPaused = true;
+    if (returnBtn) returnBtn.hidden = false;
+  };
+  viewport.addEventListener('wheel', pauseFollow, { passive: true });
+  viewport.addEventListener('touchmove', pauseFollow, { passive: true });
+  viewport.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key)) {
+      pauseFollow();
+    }
+  });
+
+  // --- return button ---
+  if (returnBtn) {
+    returnBtn.addEventListener('click', () => {
+      PanelStore.followPaused = false;
+      returnBtn.hidden = true;
+      scrollToCenter(PanelStore.currentTime);
+    });
+  }
+
+  // --- videoApi tick (local mode) ---
   if (videoApi && typeof videoApi.onTick === 'function') {
     videoApi.onTick(t => {
       PanelStore.currentTime = t;
       scrollToCenter(t);
     });
   }
+}
+
+function scrollToNearest(t) {
+  const viewport = document.getElementById('panel-viewport');
+  const rows = visibleRows();
+  if (!viewport || rows.length === 0) return;
+  const idx = findRowIdxAt(rows, t);
+  viewport.scrollTop = Math.max(0, (idx * PANEL_ROW_HEIGHT) - 100);
 }
 
 // ---------- bootstrap ----------
