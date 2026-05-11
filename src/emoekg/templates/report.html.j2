@@ -730,6 +730,21 @@ section.zone::after {
   padding: 0 2px;
   border-radius: 2px;
 }
+.panel-row-tp {
+  flex: 0 0 auto;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 120ms ease;
+  user-select: none;
+  margin-left: 4px;
+}
+.panel-row-tp:hover {
+  transform: scale(1.25);
+}
+.panel-row-tp.tp-type-peak   { color: var(--acc); }
+.panel-row-tp.tp-type-valley { color: #6A7FB5; }
+.panel-row-tp.tp-type-shift  { color: #D08A5C; }
 .panel-footer {
   flex: 0 0 auto;
   display: flex;

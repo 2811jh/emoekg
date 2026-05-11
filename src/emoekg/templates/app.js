@@ -1063,9 +1063,18 @@ function buildPanelRow(row, absIdx) {
   el.dataset.progress = row.progress;
   el.style.height = PANEL_ROW_HEIGHT + 'px';
   el.title = row.content;
+
+  const tpMeta = PanelStore.tpByDmIdx.get(row.idx);
+  const badge = tpMeta
+    ? `<span class="panel-row-tp tp-type-${tpMeta.tp_type}"
+             data-tp-id="${tpMeta.tp_id}"
+             title="TP evidence · 点击跳转 §04 详情">▲</span>`
+    : '';
+
   el.innerHTML = `
     <span class="panel-row-time">${formatMMSS(row.progress)}</span>
     <span class="panel-row-text">${highlightKeyword(row.content, PanelStore.filter)}</span>
+    ${badge}
   `;
   return el;
 }
