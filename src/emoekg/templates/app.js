@@ -914,6 +914,18 @@ function mountPanel() {
   try {
     PanelStore.allDanmaku = normalizePanelRows(DANMAKUS);
 
+    if (PanelStore.allDanmaku.length === 0) {
+      root.innerHTML = `
+        <div class="panel-empty">
+          <div class="panel-empty-title">弹幕数据未加载</div>
+          <div class="panel-empty-body">
+            此视频没有历史弹幕，或 danmaku.json 为空。
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     // Build dm_index → TP metadata map for ▲ badges (v0.4.0)
     PanelStore.tpByDmIdx = new Map();
     (TURNPOINTS || []).forEach(tp => {
