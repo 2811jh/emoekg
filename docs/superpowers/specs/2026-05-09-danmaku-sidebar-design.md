@@ -1,4 +1,4 @@
-# emoekg v0.4.0 · 弹幕流右侧抽屉 设计文档
+# emoekg v0.4.0 · §02 内嵌弹幕流面板 设计文档
 
 ## Meta
 
@@ -13,13 +13,13 @@
 
 截至 v0.3.1，emoekg 报告提供 ECG 曲线 + 8 维情绪轮 + 3-5 条转折点佐证弹幕。研究员工作流中的一个缺口：**看到 ECG 峰值时，想对齐当时的原始弹幕上下文**，现在只能回到 §03 看少量 evidence 或手动翻 §02 tooltip。
 
-v0.4.0 引入**弹幕流右侧抽屉**（Danmaku Drawer），把全量弹幕池作为一等公民放进报告，与视频 / ECG / TP 双向绑定。
+v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG（现有），右列新增**弹幕流面板**（`DanmakuPanel`），把全量弹幕池作为一等公民放进报告，与视频 / ECG / TP 双向绑定。面板随 §02 一起滚动，离开 §02 区域时自然消失——不做 fixed 挂件。
 
 ## 目标
 
 **P0（MVP）**
 
-1. 报告右侧固定 360px 抽屉，不侵入 §01-§05 DOM 与事件
+1. §02 主可视化区拆为左右双列：左列 video / ECG 堆叠（现有），右列嵌入弹幕流面板（约 35% 宽），不侵入 §01 / §03-§05 的 DOM 与事件
 2. 两种模式：**Follow**（跟视频 / TP 走）、**Browse**（全量 + 文本检索）
 3. 支持 48 min × 1886 条样本零卡顿，支持 SPARSE 样本降级
 4. 每条作为 TP evidence 的弹幕行打 `▲` 徽章，点击跳 §03 TP 卡片
@@ -35,30 +35,41 @@ v0.4.0 引入**弹幕流右侧抽屉**（Danmaku Drawer），把全量弹幕池�
 
 ## §1 · 架构概览
 
-**基线原则：** 不动老报告，只"加"一个右侧抽屉。§01-§05 所有逻辑和 DOM 保持现状。抽屉作为挂件，通过全局事件总线（`emoekg.bus`）交换数据。
+**基线原则：** 不破坏 §01 / §03-§05 的现有 DOM 和事件。仅在 §02 内部把主可视化区改为左右双列——左列 video / ECG 堆叠（现有），右列新增 `DanmakuPanel`。通过全局事件总线（`emoekg.bus`）与其它组件交换数据。
 
 **组件层级**
 
 ```
-┌─ <report.html> ────────────────────────────────────────────┐
-│  §01 Hero    §02 ECG    §03 TP    §04 Wheel    §05 Method  │
-│                                                             │
-│                       ┌──────────────┐  ◀ 已有内容          │
-│                       │              │                     │
-│                       │  DanmakuDrawer│  v0.4.0 新增        │
-│                       │  fixed right │                     │
-│                       │  w=360px     │                     │
-│                       └──────────────┘                     │
-└────────────────────────────────────────────────────────────┘
+┌─ <report.html> ──────────────────────────────────────────────┐
+│  §01 Hero                                                    │
+│                                                              │
+│  ┌─ §02 Emotional ECG ────────────────────────────────────┐  │
+│  │                                                         │  │
+│  │  ┌─ 主列（左, flex 65%）────┐  ┌─ DanmakuPanel ───────┐│  │
+│  │  │  <video>  ←─ with-video  │  │ [Follow] [Browse]   ││  │
+│  │  │  ECG 方格纸主图          │  │ ──────────────────  ││  │
+│  │  │  (无 video 时只剩 ECG)   │  │   VirtualList       ││  │
+│  │  │                          │  │   row[i]            ││  │
+│  │  │                          │  │   ...               ││  │
+│  │  │                          │  │ ──────────────────  ││  │
+│  │  │                          │  │ 1886 条 · 07:42     ││  │
+│  │  └──────────────────────────┘  └─────────────────────┘│  │
+│  │                                                         │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  §03 TP Details   ← 滚到这里时 DanmakuPanel 已滚离视口       │
+│  §04 Wheel                                                   │
+│  §05 Method                                                  │
+└──────────────────────────────────────────────────────────────┘
            ↕ emoekg.bus (已有 seekAll / TPSelect 事件)
            新增订阅: video.timeupdate / dom events
 ```
 
-**抽屉内层结构**
+**面板内层结构**
 
 ```
-┌─ DanmakuDrawer ─────────┐
-│  [Follow] [Browse]  ⌇🕒│  ← Tab Bar + 折叠钮
+┌─ DanmakuPanel ──────────┐
+│  [Follow] [Browse]      │  ← Tab Bar（无折叠钮，直接占 §02 右列）
 ├─────────────────────────┤
 │                         │
 │   VirtualList           │  ← 两模式共用虚拟滚动容器
@@ -82,7 +93,7 @@ v0.4.0 引入**弹幕流右侧抽屉**（Danmaku Drawer），把全量弹幕池�
 
 所有 UI 是该 store 的 reflection。
 
-**定位策略：** 抽屉 `position: fixed; right: 0; top: 0; height: 100vh`。不跟随页面滚动——研究员滚到 §03 时也能看到当下弹幕流。
+**定位策略：** 面板 inline 在 §02 section 内，用 CSS flex 布局（`display: flex; flex-direction: row`）。左列 `flex: 0 0 65%`，右列 `flex: 1`（约 35%）。面板高度跟随左列的内容高度（min-height 匹配 video+ECG 的总高度，避免左右两列错位）。自然随页面滚动——滚到 §03 时面板一起离开视口，不再占据视觉空间。
 
 ---
 
@@ -186,10 +197,10 @@ v0.4.0 引入**弹幕流右侧抽屉**（Danmaku Drawer），把全量弹幕池�
 
 | 输入 | 触发方 | 消费方 | 效果 |
 |---|---|---|---|
-| `video.timeupdate` | 视频原生 | Drawer (Follow) | 更新 store.currentTime → Follow 居中 |
+| `video.timeupdate` | 视频原生 | Panel (Follow) | 更新 store.currentTime → Follow 居中 |
 | `seekAll(time)` | 任意组件 | 所有组件 | 全局同步 seek |
-| Drawer 点弹幕行 | Drawer | `seekAll(t)` | 广播 |
-| Drawer 点 `▲` | Drawer | §03 TP 卡片 | `scrollIntoView`，不广播 seek |
+| Panel 点弹幕行 | Panel | `seekAll(t)` | 广播 |
+| Panel 点 `▲` | Panel | §03 TP 卡片 | `scrollIntoView`，不广播 seek |
 
 **四条核心数据流**
 
@@ -208,7 +219,7 @@ v0.4.0 引入**弹幕流右侧抽屉**（Danmaku Drawer），把全量弹幕池�
           └→ Browse: 列表轻滚到最近 t 行（不切 tab）
 
 ③ 点 ▲ 徽章
-   Drawer row.▲ click
+   Panel row.▲ click
      → getElementById(`tp-card-${id}`).scrollIntoView({behavior:'smooth'})
      → 不触发 seek，不改 currentTime
 
@@ -235,7 +246,7 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 
 **不引入**
 
-- ❌ Drawer state 持久化（刷新就重置，保持无状态）
+- ❌ Panel state 持久化（刷新就重置，保持无状态）
 - ❌ URL hash 同步（现有 dataZoom 也没同步，不开先例）
 
 ---
@@ -257,7 +268,7 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 - 不可见行不建 DOM，用 `padding-top/bottom` 占位
 
 ```
-┌─ drawer body (h=600px) ─┐
+┌─ panel viewport ────────┐
 │ padding-top: 264px     │ ← 占位
 ├────────────────────────┤
 │ row[13]                │ ← 实际渲染 ~16 个 <div>
@@ -291,8 +302,8 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 **极端 degrade**
 
 - 弹幕 > 10000 条：本版本不管，下次再说
-- 无 `danmaku.json`：抽屉灰态 "弹幕数据未加载"，两 tab 禁用
-- `JSON.parse` 失败：`console.error` + 整个 Drawer `display:none`
+- 无 `danmaku.json`：面板灰态 "弹幕数据未加载"，两 tab 禁用
+- `JSON.parse` 失败：`console.error` + 整个 Panel `display:none`
 
 **不引入**
 
@@ -306,17 +317,21 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 
 与 v0.3.0 美学一脉相承（ECG 方格纸、暗色主题、6seconds 轮配色 token）。
 
-**容器**
+**容器（§02 右列）**
 
-- `position: fixed; right: 0; top: 0; height: 100vh; width: 360px`
-- `background: var(--paper-0)` 纯色 —— **不用 glassmorphism**，滚动性能友好
-- `box-shadow: -1px 0 6px rgba(0,0,0,0.3)` 左边缘分层
+- 所在父节点：`<section id="section-ecg">` 下新增 `<div class="ecg-row">`，其内两个子项：`<div class="ecg-main">`（左，现有 video + ECG）+ `<div class="danmaku-panel">`（右，新增）
+- `.ecg-row`：`display: flex; flex-direction: row; gap: 20px; align-items: stretch`
+- `.danmaku-panel`：`flex: 1 1 0; min-width: 320px; max-width: 440px`——约占 §02 内部宽度的 30-35%
+- `background: var(--paper-0)` 纯色——**不用 glassmorphism**，滚动性能友好
+- `border-left: 1px solid var(--divider)` 分割线，不用阴影（阴影在 inline 布局里反而显脏）
+- `border-radius`：跟 §02 卡片保持一致（`var(--radius-card)`）
 
 **Tab 条**
 
 - 下划线型切换
 - active 色：`var(--accent-gold)`
 - 字号 14px，uppercase，字距 0.08em
+- 位置固定在面板顶部，不随列表滚动
 
 **弹幕行**
 
@@ -342,16 +357,11 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 - 颜色跟 TP 类型：`--tp-peak` / `--tp-valley` / `--tp-shift`
 - hover 放大 1.2x（复用 §03 `transform: scale(1.2)` 动画）
 
-**折叠按钮**
+**响应式（窄屏堆叠）**
 
-- 右上角 ⌇🕒 图标
-- 折叠后变 56px 宽侧栏把手，显示展开箭头 + 若当前处于某 TP 时间段则显示对应类型的 `▲` 图标
-- 展开/折叠动画：0.3s ease-out
-
-**响应式**
-
-- 视口宽度 < 1280px：抽屉默认折叠态（56px 把手），主内容区不被挤压
-- 视口宽度 ≥ 1280px：默认展开
+- 视口宽度 ≥ 1280px：左右双列并排（65% / 35%）
+- 视口宽度 < 1280px：`.ecg-row` 切 `flex-direction: column`，面板堆叠到主列下方，高度固定 420px
+- 视口宽度 < 768px（移动）：面板 `display: none`（弹幕流不是核心内容；小屏用户主要看 §01-§03 文字洞察）——研究场景基本都在桌面，YAGNI
 
 ---
 
@@ -359,15 +369,15 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 
 | 场景 | 表现 |
 |---|---|
-| `danmaku.json` 缺失 | 抽屉渲染占位 "弹幕数据未加载"，两 tab 禁用 |
+| `danmaku.json` 缺失 | 面板渲染占位 "弹幕数据未加载"，两 tab 禁用 |
 | `danmaku.json` 为空数组 `[]` | 同上 |
 | 极稀疏（< 20 条，SPARSE） | Follow 不居中直接显示全部；Browse 搜索框 placeholder 改为 "样本较少，全部显示" |
 | `currentTime` 超出弹幕时间范围 | 空窗口 + 占位 "此时段无弹幕" |
 | 搜索无命中 | 空态："未命中 '春晚' · 试试别的关键词" |
-| `JSON.parse` 失败 | `console.error` + 抽屉 `display:none`，不破坏 §01-§05 |
-| 无 `<video>`（非 `--with-video` 模式） | Follow 改跟 ECG chart axis 指针；文案改为 "图上 hover 即跟随" |
+| `JSON.parse` 失败 | `console.error` + 面板 `display:none`，不破坏 §01-§05 |
+| 无 `<video>`（非 `--with-video` 模式） | 布局保持 row，左列只剩 ECG 方格纸；Follow 绑定从 `video.timeupdate` 改为 ECG chart 的 `axisPointer` 变化事件；Tab 条说明文案改 "hover ECG 即跟随" |
 
-**关键原则：** 抽屉失败绝不拖垮主报告。所有 Drawer 相关入口包 `try-catch`，失败时 `display:none` 静默退出。
+**关键原则：** 面板失败绝不拖垮主报告。所有 Panel 相关入口包 `try-catch`，失败时 `display:none` 静默退出。§02 左列（video / ECG）继续独立渲染——研究员至少还能看到现有的主可视化。
 
 ---
 
@@ -385,10 +395,10 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 
 使用现有 Python 测试 runner 或轻量 JS runner（Node.js）。候选方案：用 `vitest` 或手写断言。需在 writing-plans 阶段敲定。
 
-- `test_drawer_scroll.test.js`：mock 1886 条 → `scrollToCenter(300)` → 期望 scrollTop 符合
-- `test_drawer_filter.test.js`：关键词 "春晚" → filteredRows.length 符合
-- `test_drawer_follow_pause.test.js`：模拟 scroll → timeupdate 不触发 scrollTo
-- `test_drawer_virtual_render.test.js`：100k 条 → 可见 DOM 节点数 ≈ 16
+- `test_panel_scroll.test.js`：mock 1886 条 → `scrollToCenter(300)` → 期望 scrollTop 符合
+- `test_panel_filter.test.js`：关键词 "春晚" → filteredRows.length 符合
+- `test_panel_follow_pause.test.js`：模拟 scroll → timeupdate 不触发 scrollTo
+- `test_panel_virtual_render.test.js`：100k 条 → 可见 DOM 节点数 ≈ 16
 
 **集成（手动 checklist）**
 
@@ -400,7 +410,7 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 - ✅ 切 Browse，搜索框 filter 实时
 - ✅ Browse 点弹幕不切 tab
 - ✅ 48 min 1886 条样本滚动无卡顿（BV1arcxz5Epf）
-- ✅ SPARSE 样本（11 条）抽屉显示全部不报错
+- ✅ SPARSE 样本（11 条）面板显示全部不报错
 - ✅ 非 `--with-video` 模式，Follow 可 hover ECG 触发
 
 ---
