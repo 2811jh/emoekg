@@ -1184,10 +1184,24 @@ function wirePanelEvents() {
     });
   }
 
-  // --- row click → seekAll (▲ badge handler takes priority in Phase D) ---
+  // --- row click → seekAll (▲ badge handler takes priority) ---
   const rowsEl = document.getElementById('panel-rows');
   if (rowsEl) {
     rowsEl.addEventListener('click', e => {
+      // ▲ TP badge: scroll to §04 card, do NOT seek
+      const badge = e.target.closest('.panel-row-tp');
+      if (badge) {
+        e.stopPropagation();
+        const tpId = badge.dataset.tpId;
+        const card = document.getElementById('tp-' + tpId);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          card.classList.add('tp-flash');
+          setTimeout(() => card.classList.remove('tp-flash'), 900);
+        }
+        return;
+      }
+
       const rowEl = e.target.closest('.panel-row');
       if (!rowEl) return;
       const t = Number(rowEl.dataset.progress);

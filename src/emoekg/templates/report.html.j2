@@ -910,6 +910,14 @@ section.zone::after {
   padding: 22px 0;
   border-bottom: 1px solid var(--n-4);
   cursor: pointer;                         /* toggles collapse */
+  transition: background-color 900ms ease-out;
+}
+.tp.tp-flash {
+  animation: tpFlash 0.9s ease-out;
+}
+@keyframes tpFlash {
+  0% { background-color: var(--acc-soft); }
+  100% { background-color: transparent; }
 }
 .tp:last-child { border-bottom: 0; }
 .tp-meta {
