@@ -1391,22 +1391,30 @@ section.zone::after {
     </span>
     <span class="hint">点击下方心电图任意位置可同步跳转视频时刻</span>
   </div>
-  <div id="video-wrapper"></div>
+  <div class="ecg-row">
+    <div class="ecg-main">
+      <div id="video-wrapper"></div>
 
-  <div class="ecg-wrap">
-    <div class="monitor-head" style="padding:0 16px 18px 16px;margin-bottom:0">
-      <span class="cap">
-        <span class="live-trace">
-          <span class="dot"></span>8-DIM PLUTCHIK ECG
-          <span class="sep">/</span>
-          <span class="freq">Lead II · n={{ total_danmaku }}</span>
-        </span>
-      </span>
-      <span class="hint">悬停查看每 {{ window_size }}s 窗口的完整情绪读数 · 橙色 ▲ 为情绪转折点，悬停看详情、点击同步视频 · 拖动下方滑块缩放时间范围</span>
+      <div class="ecg-wrap">
+        <div class="monitor-head" style="padding:0 16px 18px 16px;margin-bottom:0">
+          <span class="cap">
+            <span class="live-trace">
+              <span class="dot"></span>8-DIM PLUTCHIK ECG
+              <span class="sep">/</span>
+              <span class="freq">Lead II · n={{ total_danmaku }}</span>
+            </span>
+          </span>
+          <span class="hint">悬停查看每 {{ window_size }}s 窗口的完整情绪读数 · 橙色 ▲ 为情绪转折点，悬停看详情、点击同步视频 · 拖动下方滑块缩放时间范围</span>
+        </div>
+        <div class="ecg-canvas-box">
+          <div id="ecg-chart"></div>
+          <div class="ecg-sweep" aria-hidden="true"></div>
+        </div>
+      </div>
     </div>
-    <div class="ecg-canvas-box">
-      <div id="ecg-chart"></div>
-      <div class="ecg-sweep" aria-hidden="true"></div>
+
+    <div id="panel-root" class="danmaku-panel">
+      <div class="panel-empty">Panel mounting...</div>
     </div>
   </div>
 </section>
