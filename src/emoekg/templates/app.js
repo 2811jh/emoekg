@@ -915,7 +915,25 @@ function mountPanel() {
 
 // Stub functions filled in by later tasks.
 function renderPanelShell(root) {
-  root.innerHTML = '<div class="panel-empty">Shell not implemented yet</div>';
+  root.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-tabs" role="tablist">
+        <button class="panel-tab is-active" data-mode="follow" role="tab">Follow</button>
+        <button class="panel-tab" data-mode="browse" role="tab">Browse</button>
+      </div>
+      <div class="panel-subtitle" id="panel-subtitle">跟随视频播放时刻</div>
+    </div>
+    <div class="panel-viewport" id="panel-viewport">
+      <div class="panel-padtop" id="panel-padtop"></div>
+      <div class="panel-rows" id="panel-rows"></div>
+      <div class="panel-padbot" id="panel-padbot"></div>
+    </div>
+    <button class="panel-return" id="panel-return" hidden>↓ 回到当前</button>
+    <div class="panel-footer" id="panel-footer">
+      <span id="panel-footer-count"></span>
+      <span id="panel-footer-time">—</span>
+    </div>
+  `;
 }
 function renderPanelList() { /* Task B3 */ }
 function wirePanelEvents() { /* Task B4 */ }
