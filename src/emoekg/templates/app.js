@@ -939,6 +939,31 @@ function renderPanelShell(root) {
 const PANEL_ROW_HEIGHT = 44;
 const PANEL_BUFFER_ROWS = 5;
 
+function scrollToCenter(t) {
+  if (PanelStore.followPaused) return;
+  if (PanelStore.mode !== 'follow') return;
+
+  const viewport = document.getElementById('panel-viewport');
+  const rows = PanelStore.allDanmaku;
+  if (!viewport || rows.length === 0) return;
+
+  const idx = findRowIdxAt(rows, t);
+  const target = (idx * PANEL_ROW_HEIGHT) - (viewport.clientHeight / 2) + (PANEL_ROW_HEIGHT / 2);
+  viewport.scrollTop = Math.max(0, target);
+  // renderPanelList fires automatically via the scroll listener
+}
+
+function updateCurrentHighlight() {
+  const t = PanelStore.currentTime;
+  document.querySelectorAll('#panel-rows .panel-row').forEach(el => {
+    const p = Number(el.dataset.progress);
+    el.classList.remove('is-current', 'is-edge');
+    const dt = Math.abs(p - t);
+    if (dt < 1) el.classList.add('is-current');
+    else if (dt >= 18 && dt < 20) el.classList.add('is-edge');
+  });
+}
+
 function renderPanelList() {
   const viewport = document.getElementById('panel-viewport');
   const padTop = document.getElementById('panel-padtop');
@@ -1015,8 +1040,17 @@ function wirePanelEvents() {
     raf = requestAnimationFrame(() => {
       raf = null;
       renderPanelList();
+      updateCurrentHighlight();
     });
   });
+
+  // Local video mode: timeupdate callback
+  if (videoApi && typeof videoApi.onTick === 'function') {
+    videoApi.onTick(t => {
+      PanelStore.currentTime = t;
+      scrollToCenter(t);
+    });
+  }
 }
 
 // ---------- bootstrap ----------

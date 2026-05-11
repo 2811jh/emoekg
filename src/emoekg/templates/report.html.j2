@@ -683,6 +683,15 @@ section.zone::after {
 .panel-row:hover {
   background-color: var(--n-2);
 }
+.panel-row.is-current {
+  background-color: rgba(235, 94, 40, 0.10);
+  border-left: 3px solid var(--acc);
+  padding-left: 13px;  /* compensate for border to keep content aligned */
+  font-weight: 600;
+}
+.panel-row.is-edge {
+  opacity: 0.4;
+}
 .panel-row-time {
   flex: 0 0 44px;
   font-family: var(--ff-mono);
