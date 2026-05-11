@@ -284,3 +284,38 @@ def test_render_preserves_legacy_danmaku_stream(tmp_path):
     assert html.count('id="data-danmakus"') == 1, (
         "Exactly one data-danmakus embed expected"
     )
+
+
+def test_render_preserves_dm_index_in_turnpoints(tmp_path):
+    """v0.4.0: rendered HTML must contain dm_index values in data-turnpoints."""
+    _populate(tmp_path)
+    # Overwrite turnpoints.json with one that has dm_index evidence
+    (tmp_path / "turnpoints.json").write_text(
+        json.dumps([{
+            "turnpoint_id": "TP01",
+            "type": "peak",
+            "chunk_index": 0,
+            "time_peak": 1.0,
+            "time_start": 0,
+            "time_end": 60,
+            "main_dimension": "joy",
+            "score": 5,
+            "evidence_danmakus": [
+                {"time": 1.0, "text": "666", "color": 16777215, "dm_index": 0},
+            ],
+        }], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    render_report.run(tmp_path, force=True)
+    html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+
+    # Extract the data-turnpoints JSON blob
+    import re
+    m = re.search(r'id="data-turnpoints">(.*?)</script>', html, re.DOTALL)
+    assert m, "data-turnpoints embed not found"
+    tps = json.loads(m.group(1))
+    assert len(tps) == 1
+
+    ed = tps[0]["evidence_danmakus"][0]
+    assert "dm_index" in ed, "dm_index missing — Stage 4 → Stage 5 regression"
+    assert ed["dm_index"] == 0
