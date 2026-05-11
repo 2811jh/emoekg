@@ -671,6 +671,34 @@ section.zone::after {
 }
 .panel-padtop, .panel-padbot { height: 0; }
 .panel-rows { display: flex; flex-direction: column; }
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--n-3);
+  cursor: pointer;
+  transition: background-color 120ms;
+}
+.panel-row:hover {
+  background-color: var(--n-2);
+}
+.panel-row-time {
+  flex: 0 0 44px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--n-6);
+  letter-spacing: 0.04em;
+}
+.panel-row-text {
+  flex: 1 1 0;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--n-8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .panel-footer {
   flex: 0 0 auto;
   display: flex;

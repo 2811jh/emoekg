@@ -935,8 +935,89 @@ function renderPanelShell(root) {
     </div>
   `;
 }
-function renderPanelList() { /* Task B3 */ }
-function wirePanelEvents() { /* Task B4 */ }
+
+const PANEL_ROW_HEIGHT = 44;
+const PANEL_BUFFER_ROWS = 5;
+
+function renderPanelList() {
+  const viewport = document.getElementById('panel-viewport');
+  const padTop = document.getElementById('panel-padtop');
+  const padBot = document.getElementById('panel-padbot');
+  const rowsEl = document.getElementById('panel-rows');
+  if (!viewport || !rowsEl) return;
+
+  const rows = visibleRows();
+  const total = rows.length;
+  const viewportH = viewport.clientHeight || 400;
+  const scrollTop = viewport.scrollTop;
+
+  const startIdx = Math.max(0,
+    Math.floor(scrollTop / PANEL_ROW_HEIGHT) - PANEL_BUFFER_ROWS);
+  const visibleCount = Math.ceil(viewportH / PANEL_ROW_HEIGHT) + PANEL_BUFFER_ROWS * 2;
+  const endIdx = Math.min(total, startIdx + visibleCount);
+
+  padTop.style.height = (startIdx * PANEL_ROW_HEIGHT) + 'px';
+  padBot.style.height = ((total - endIdx) * PANEL_ROW_HEIGHT) + 'px';
+
+  const frag = document.createDocumentFragment();
+  for (let i = startIdx; i < endIdx; i++) {
+    frag.appendChild(buildPanelRow(rows[i], i));
+  }
+  rowsEl.replaceChildren(frag);
+
+  const footerCount = document.getElementById('panel-footer-count');
+  const footerTime = document.getElementById('panel-footer-time');
+  if (footerCount) footerCount.textContent = `${total} 条`;
+  if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
+}
+
+function visibleRows() {
+  // Follow mode: always full list (centered via scrollTop)
+  // Browse mode: filtered rows (Task C2)
+  if (PanelStore.mode === 'browse' && PanelStore.filter) {
+    const needle = PanelStore.filter.toLowerCase();
+    return PanelStore.allDanmaku.filter(r =>
+      r.content.toLowerCase().includes(needle));
+  }
+  return PanelStore.allDanmaku;
+}
+
+function buildPanelRow(row, absIdx) {
+  const el = document.createElement('div');
+  el.className = 'panel-row';
+  el.dataset.idx = absIdx;
+  el.dataset.dmIdx = row.idx;
+  el.dataset.progress = row.progress;
+  el.style.height = PANEL_ROW_HEIGHT + 'px';
+  el.title = row.content;
+  el.innerHTML = `
+    <span class="panel-row-time">${formatMMSS(row.progress)}</span>
+    <span class="panel-row-text">${escapeHtml(row.content)}</span>
+  `;
+  return el;
+}
+
+function formatMMSS(sec) {
+  const s = Math.floor(sec);
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function wirePanelEvents() {
+  const viewport = document.getElementById('panel-viewport');
+  if (!viewport) return;
+
+  // Re-render visible window on scroll
+  let raf = null;
+  viewport.addEventListener('scroll', () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      renderPanelList();
+    });
+  });
+}
 
 // ---------- bootstrap ----------
 mountVideo();
