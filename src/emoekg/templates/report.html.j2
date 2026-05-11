@@ -598,6 +598,204 @@ section.zone::after {
   width: 100%;
   overflow: hidden;
 }
+/* --- §02 ROW: video + ECG on left, DanmakuPanel on right (v0.4.0) ------- */
+.ecg-row {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: stretch;
+  margin-top: 8px;
+}
+.ecg-main {
+  flex: 0 0 calc(65% - 10px);
+  min-width: 0;  /* allow flex child to shrink below intrinsic content */
+  display: flex;
+  flex-direction: column;
+}
+.danmaku-panel {
+  flex: 1 1 0;
+  min-width: 320px;
+  max-width: 440px;
+  background-color: var(--n-1);
+  border: 1px solid var(--n-4);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.danmaku-panel .panel-empty {
+  padding: 40px 20px;
+  color: var(--n-6);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-small);
+  text-align: center;
+}
+.panel-empty-title {
+  font-family: var(--ff-serif);
+  font-size: 16px;
+  color: var(--n-8);
+  margin-bottom: 8px;
+}
+.panel-empty-body {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-small);
+  color: var(--n-6);
+  line-height: 1.5;
+  max-width: 32ch;
+  margin: 0 auto;
+}
+.panel-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--n-4);
+  background-color: var(--n-1);
+  flex: 0 0 auto;
+}
+.panel-tabs {
+  display: flex;
+  gap: 18px;
+}
+.panel-tab {
+  background: none;
+  border: none;
+  padding: 4px 0 8px;
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--n-6);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+.panel-tab:hover { color: var(--n-8); }
+.panel-tab.is-active { color: var(--acc); border-bottom-color: var(--acc); }
+.panel-subtitle {
+  margin-top: 6px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-micro);
+  color: var(--n-6);
+  letter-spacing: 0.02em;
+}
+.panel-search {
+  margin-top: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  background-color: var(--n-0);
+  border: 1px solid var(--n-4);
+  border-radius: 3px;
+  color: var(--n-8);
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 120ms;
+  box-sizing: border-box;
+}
+.panel-search:focus { border-color: var(--acc); }
+.panel-search::placeholder { color: var(--n-6); }
+.panel-viewport {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  position: relative;
+  min-height: 400px;
+  scrollbar-width: thin;
+}
+.panel-padtop, .panel-padbot { height: 0; }
+.panel-rows { display: flex; flex-direction: column; }
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--n-3);
+  cursor: pointer;
+  transition: background-color 120ms;
+}
+.panel-row:hover {
+  background-color: var(--n-2);
+}
+.panel-row.is-current {
+  background-color: rgba(235, 94, 40, 0.10);
+  border-left: 3px solid var(--acc);
+  padding-left: 13px;  /* compensate for border to keep content aligned */
+  font-weight: 600;
+}
+.panel-row.is-edge {
+  opacity: 0.4;
+}
+.panel-row-time {
+  flex: 0 0 44px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--n-6);
+  letter-spacing: 0.04em;
+}
+.panel-row-text {
+  flex: 1 1 0;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  color: var(--n-8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-hl {
+  background-color: var(--acc-ghost);
+  color: var(--n-9);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.panel-row-tp {
+  flex: 0 0 auto;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 120ms ease;
+  user-select: none;
+  margin-left: 4px;
+}
+.panel-row-tp:hover {
+  transform: scale(1.25);
+}
+.panel-row-tp.tp-type-peak   { color: var(--acc); }
+.panel-row-tp.tp-type-valley { color: #6A7FB5; }
+.panel-row-tp.tp-type-shift  { color: #D08A5C; }
+.panel-footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid var(--n-4);
+  background-color: var(--n-1);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  color: var(--n-6);
+  letter-spacing: 0.08em;
+}
+.panel-return {
+  position: absolute;
+  right: 16px;
+  bottom: 56px;
+  padding: 6px 12px;
+  background-color: var(--acc);
+  color: var(--n-9);
+  border: none;
+  border-radius: 3px;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  box-shadow: 0 4px 12px -4px rgba(0,0,0,0.6);
+  z-index: 5;
+}
+@media (max-width: 1279px) {
+  .ecg-row { flex-direction: column; }
+  .ecg-main { flex: 1 1 auto; }
+  .danmaku-panel { max-width: 100%; min-height: 420px; }
+}
+@media (max-width: 767px) {
+  .danmaku-panel { display: none; }
+}
+
 #ecg-chart { width: 100%; height: 460px; position: relative; z-index: 1; }
 
 /* --- ECG "paper" grid (behind the chart, very subtle) ---
@@ -726,6 +924,14 @@ section.zone::after {
   padding: 22px 0;
   border-bottom: 1px solid var(--n-4);
   cursor: pointer;                         /* toggles collapse */
+  transition: background-color 900ms ease-out;
+}
+.tp.tp-flash {
+  animation: tpFlash 0.9s ease-out;
+}
+@keyframes tpFlash {
+  0% { background-color: var(--acc-soft); }
+  100% { background-color: transparent; }
 }
 .tp:last-child { border-bottom: 0; }
 .tp-meta {
@@ -1391,22 +1597,30 @@ section.zone::after {
     </span>
     <span class="hint">点击下方心电图任意位置可同步跳转视频时刻</span>
   </div>
-  <div id="video-wrapper"></div>
+  <div class="ecg-row">
+    <div class="ecg-main">
+      <div id="video-wrapper"></div>
 
-  <div class="ecg-wrap">
-    <div class="monitor-head" style="padding:0 16px 18px 16px;margin-bottom:0">
-      <span class="cap">
-        <span class="live-trace">
-          <span class="dot"></span>8-DIM PLUTCHIK ECG
-          <span class="sep">/</span>
-          <span class="freq">Lead II · n={{ total_danmaku }}</span>
-        </span>
-      </span>
-      <span class="hint">悬停查看每 {{ window_size }}s 窗口的完整情绪读数 · 橙色 ▲ 为情绪转折点，悬停看详情、点击同步视频 · 拖动下方滑块缩放时间范围</span>
+      <div class="ecg-wrap">
+        <div class="monitor-head" style="padding:0 16px 18px 16px;margin-bottom:0">
+          <span class="cap">
+            <span class="live-trace">
+              <span class="dot"></span>8-DIM PLUTCHIK ECG
+              <span class="sep">/</span>
+              <span class="freq">Lead II · n={{ total_danmaku }}</span>
+            </span>
+          </span>
+          <span class="hint">悬停查看每 {{ window_size }}s 窗口的完整情绪读数 · 橙色 ▲ 为情绪转折点，悬停看详情、点击同步视频 · 拖动下方滑块缩放时间范围</span>
+        </div>
+        <div class="ecg-canvas-box">
+          <div id="ecg-chart"></div>
+          <div class="ecg-sweep" aria-hidden="true"></div>
+        </div>
+      </div>
     </div>
-    <div class="ecg-canvas-box">
-      <div id="ecg-chart"></div>
-      <div class="ecg-sweep" aria-hidden="true"></div>
+
+    <div id="panel-root" class="danmaku-panel">
+      <div class="panel-empty">Panel mounting...</div>
     </div>
   </div>
 </section>

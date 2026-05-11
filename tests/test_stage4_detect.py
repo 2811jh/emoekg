@@ -135,11 +135,12 @@ def test_run_evidence_is_serializable_subset(tmp_path):
     detect_turnpoints.run(tmp_path)
 
     tps = json.loads((tmp_path / "turnpoints.json").read_text(encoding="utf-8"))
-    # We intentionally trim to {time, text, color} — evidence is for the HTML
-    # report, not for downstream algorithms, so dropping user_hash is fine.
+    # Evidence fields: {time, text, color} for display + dm_index (v0.4.0)
+    # for the DanmakuPanel ▲ badge roundtrip. Intentionally drops user_hash.
+    allowed = {"time", "text", "color", "dm_index"}
     for tp in tps:
         for ev in tp["evidence_danmakus"]:
-            assert set(ev.keys()) <= {"time", "text", "color"}
+            assert set(ev.keys()) <= allowed
 
 
 # ---------------------------------------------------------------------------
@@ -234,3 +235,27 @@ def test_run_broadens_evidence_pool_to_adjacent_chunks(tmp_path):
     assert peak_tps[0]["evidence_danmakus"], (
         "expected adjacent-chunk fallback to surface evidence"
     )
+
+
+# ---------------------------------------------------------------------------
+# v0.4.0 — dm_index tagging for DanmakuPanel ▲ badges
+# ---------------------------------------------------------------------------
+
+
+def test_evidence_danmakus_include_dm_index(tmp_path):
+    """v0.4.0: each evidence entry carries the source danmaku's 0-based array index."""
+    _write_full_fixture(tmp_path, [1, 2, 3, 9, 4, 2, 2, 9, 3, 1])
+    detect_turnpoints.run(tmp_path)
+
+    tps = json.loads((tmp_path / "turnpoints.json").read_text(encoding="utf-8"))
+    dms = json.loads((tmp_path / "danmaku.json").read_text(encoding="utf-8"))
+    assert len(tps) >= 1
+
+    for tp in tps:
+        for ed in tp["evidence_danmakus"]:
+            assert "dm_index" in ed, f"evidence missing dm_index: {ed}"
+            assert isinstance(ed["dm_index"], int)
+            assert 0 <= ed["dm_index"] < len(dms)
+            # Roundtrip: the time/text at that index must match
+            assert dms[ed["dm_index"]]["time"] == ed["time"]
+            assert dms[ed["dm_index"]]["text"] == ed["text"]

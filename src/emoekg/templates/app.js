@@ -504,6 +504,16 @@ function seekAll(sec) {
   if (videoApi) videoApi.seek(sec);
   highlightDanmakuAt(sec);
   scrollVideoIntoView();
+  // v0.4.0: Panel follows the seek
+  if (typeof PanelStore !== 'undefined') {
+    PanelStore.currentTime = sec;
+    PanelStore.followPaused = false;
+    const rbtn = document.getElementById('panel-return');
+    if (rbtn) rbtn.hidden = true;
+    if (PanelStore.mode === 'follow') scrollToCenter(sec);
+    else scrollToNearest(sec);
+    updateCurrentHighlight();
+  }
 }
 
 function scrollVideoIntoView() {
@@ -853,6 +863,413 @@ function escapeHtml(s) {
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
 
+// ========================================================================
+// DanmakuPanel (v0.4.0)
+// ------------------------------------------------------------------------
+// A §02 right-column panel with two modes (follow / browse), virtual
+// scrolling, and TP evidence ▲ badges. Coexists with the legacy §04
+// `#danmaku-list` — shares the DANMAKUS constant but owns isolated UI
+// state. All elements live under `#panel-root` with the `.panel-*` class
+// namespace to prevent CSS / selector collisions.
+// ========================================================================
+
+const PanelStore = {
+  currentTime: 0,
+  mode: 'follow',        // 'follow' | 'browse'
+  filter: '',
+  followPaused: false,
+  allDanmaku: [],        // sorted-by-time array of { idx, progress, content }
+  tpByDmIdx: new Map(),  // dm_index → { tp_id, tp_type }
+};
+
+// --- row normalization ---------------------------------------------------
+// The raw DANMAKUS array comes from Stage 1 (src/emoekg/_lib/danmaku_client.py
+// normalizes bilibili-api-python output to `{time, text, mode, color, ...}`).
+// Panel only consumes three fields. The normalized row preserves just those
+// plus the 0-based array index (`idx`) — used in `tpByDmIdx` for ▲ badges.
+function normalizePanelRows(raw) {
+  return raw
+    .map((d, i) => ({
+      idx: i,
+      progress: Number(d.time != null ? d.time : (d.progress || 0)),
+      content: String(d.text != null ? d.text : (d.content || '')),
+    }))
+    .sort((a, b) => a.progress - b.progress);
+}
+
+// --- binary search: find idx of last row with progress <= t --------------
+function findRowIdxAt(rows, t) {
+  let lo = 0, hi = rows.length - 1, ans = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (rows[mid].progress <= t) { ans = mid; lo = mid + 1; }
+    else { hi = mid - 1; }
+  }
+  return ans;
+}
+
+function mountPanel() {
+  const root = document.getElementById('panel-root');
+  if (!root) return;
+  try {
+    PanelStore.allDanmaku = normalizePanelRows(DANMAKUS);
+
+    if (PanelStore.allDanmaku.length === 0) {
+      root.innerHTML = `
+        <div class="panel-empty">
+          <div class="panel-empty-title">弹幕数据未加载</div>
+          <div class="panel-empty-body">
+            此视频没有历史弹幕，或 danmaku.json 为空。
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Build dm_index → TP metadata map for ▲ badges (v0.4.0)
+    PanelStore.tpByDmIdx = new Map();
+    (TURNPOINTS || []).forEach(tp => {
+      (tp.evidence_danmakus || []).forEach(ed => {
+        if (typeof ed.dm_index === 'number') {
+          PanelStore.tpByDmIdx.set(ed.dm_index, {
+            tp_id: tp.turnpoint_id,
+            tp_type: tp.type || 'peak',
+          });
+        }
+      });
+    });
+
+    renderPanelShell(root);
+    renderPanelList();
+    wirePanelEvents();
+
+    // SPARSE-sample affordance: tell the researcher follow is effectively disabled
+    if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) {
+      const subtitle = document.getElementById('panel-subtitle');
+      if (subtitle) {
+        subtitle.textContent = `样本较少（${PanelStore.allDanmaku.length} 条）· 全部显示`;
+      }
+    }
+
+    console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus, ${PanelStore.tpByDmIdx.size} ▲ rows`);
+  } catch (err) {
+    console.error('[Panel] mount failed, hiding panel', err);
+    root.style.display = 'none';
+  }
+}
+
+// Stub functions filled in by later tasks.
+function renderPanelShell(root) {
+  root.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-tabs" role="tablist">
+        <button class="panel-tab is-active" data-mode="follow" role="tab">Follow</button>
+        <button class="panel-tab" data-mode="browse" role="tab">Browse</button>
+      </div>
+      <div class="panel-subtitle" id="panel-subtitle">跟随视频播放时刻</div>
+      <input type="text" id="panel-search" class="panel-search"
+             placeholder="搜索弹幕文本..." hidden>
+    </div>
+    <div class="panel-viewport" id="panel-viewport">
+      <div class="panel-padtop" id="panel-padtop"></div>
+      <div class="panel-rows" id="panel-rows"></div>
+      <div class="panel-padbot" id="panel-padbot"></div>
+    </div>
+    <button class="panel-return" id="panel-return" hidden>↓ 回到当前</button>
+    <div class="panel-footer" id="panel-footer">
+      <span id="panel-footer-count"></span>
+      <span id="panel-footer-time">—</span>
+    </div>
+  `;
+}
+
+const PANEL_ROW_HEIGHT = 44;
+const PANEL_BUFFER_ROWS = 5;
+const SPARSE_THRESHOLD = 20;
+
+function scrollToCenter(t) {
+  if (PanelStore.followPaused) return;
+  if (PanelStore.mode !== 'follow') return;
+  // SPARSE sample: whole list fits in viewport anyway, skip centering
+  if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) return;
+
+  const viewport = document.getElementById('panel-viewport');
+  const rows = PanelStore.allDanmaku;
+  if (!viewport || rows.length === 0) return;
+
+  const idx = findRowIdxAt(rows, t);
+  const target = (idx * PANEL_ROW_HEIGHT) - (viewport.clientHeight / 2) + (PANEL_ROW_HEIGHT / 2);
+  viewport.scrollTop = Math.max(0, target);
+}
+
+function updateCurrentHighlight() {
+  const t = PanelStore.currentTime;
+  document.querySelectorAll('#panel-rows .panel-row').forEach(el => {
+    const p = Number(el.dataset.progress);
+    el.classList.remove('is-current', 'is-edge');
+    const dt = Math.abs(p - t);
+    if (dt < 1) el.classList.add('is-current');
+    else if (dt >= 18 && dt < 20) el.classList.add('is-edge');
+  });
+}
+
+function renderPanelList() {
+  const viewport = document.getElementById('panel-viewport');
+  const padTop = document.getElementById('panel-padtop');
+  const padBot = document.getElementById('panel-padbot');
+  const rowsEl = document.getElementById('panel-rows');
+  if (!viewport || !rowsEl) return;
+
+  const rows = visibleRows();
+  const total = rows.length;
+  const footerCount = document.getElementById('panel-footer-count');
+  const footerTime = document.getElementById('panel-footer-time');
+
+  if (total === 0) {
+    padTop.style.height = '0px';
+    padBot.style.height = '0px';
+    rowsEl.innerHTML = `
+      <div class="panel-empty">
+        ${PanelStore.filter
+          ? `未命中 "${escapeHtml(PanelStore.filter)}" · 试试别的关键词`
+          : '此时段无弹幕'}
+      </div>
+    `;
+    if (footerCount) footerCount.textContent = '0 条';
+    if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
+    return;
+  }
+
+  const viewportH = viewport.clientHeight || 400;
+  const scrollTop = viewport.scrollTop;
+
+  const startIdx = Math.max(0,
+    Math.floor(scrollTop / PANEL_ROW_HEIGHT) - PANEL_BUFFER_ROWS);
+  const visibleCount = Math.ceil(viewportH / PANEL_ROW_HEIGHT) + PANEL_BUFFER_ROWS * 2;
+  const endIdx = Math.min(total, startIdx + visibleCount);
+
+  padTop.style.height = (startIdx * PANEL_ROW_HEIGHT) + 'px';
+  padBot.style.height = ((total - endIdx) * PANEL_ROW_HEIGHT) + 'px';
+
+  const frag = document.createDocumentFragment();
+  for (let i = startIdx; i < endIdx; i++) {
+    frag.appendChild(buildPanelRow(rows[i], i));
+  }
+  rowsEl.replaceChildren(frag);
+
+  if (footerCount) {
+    if (PanelStore.filter) {
+      footerCount.textContent = `命中 ${total} / ${PanelStore.allDanmaku.length} 条`;
+    } else {
+      footerCount.textContent = `${total} 条`;
+    }
+  }
+  if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
+}
+
+function visibleRows() {
+  // Follow mode: always full list (centered via scrollTop)
+  // Browse mode: filtered rows (Task C2)
+  if (PanelStore.mode === 'browse' && PanelStore.filter) {
+    const needle = PanelStore.filter.toLowerCase();
+    return PanelStore.allDanmaku.filter(r =>
+      r.content.toLowerCase().includes(needle));
+  }
+  return PanelStore.allDanmaku;
+}
+
+function buildPanelRow(row, absIdx) {
+  const el = document.createElement('div');
+  el.className = 'panel-row';
+  el.dataset.idx = absIdx;
+  el.dataset.dmIdx = row.idx;
+  el.dataset.progress = row.progress;
+  el.style.height = PANEL_ROW_HEIGHT + 'px';
+  el.title = row.content;
+
+  const tpMeta = PanelStore.tpByDmIdx.get(row.idx);
+  const badge = tpMeta
+    ? `<span class="panel-row-tp tp-type-${tpMeta.tp_type}"
+             data-tp-id="${tpMeta.tp_id}"
+             title="TP evidence · 点击跳转 §04 详情">▲</span>`
+    : '';
+
+  el.innerHTML = `
+    <span class="panel-row-time">${formatMMSS(row.progress)}</span>
+    <span class="panel-row-text">${highlightKeyword(row.content, PanelStore.filter)}</span>
+    ${badge}
+  `;
+  return el;
+}
+
+function highlightKeyword(text, keyword) {
+  if (!keyword) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const needle = escapeHtml(keyword);
+  const re = new RegExp('(' + needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return escaped.replace(re, '<mark class="panel-hl">$1</mark>');
+}
+
+function formatMMSS(sec) {
+  const s = Math.floor(sec);
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function wirePanelEvents() {
+  const viewport = document.getElementById('panel-viewport');
+  const returnBtn = document.getElementById('panel-return');
+  if (!viewport) return;
+
+  // --- scroll re-render ---
+  let raf = null;
+  viewport.addEventListener('scroll', () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      renderPanelList();
+      updateCurrentHighlight();
+    });
+  });
+
+  // --- user-initiated scroll pauses follow ---
+  const pauseFollow = () => {
+    if (PanelStore.followPaused) return;
+    if (PanelStore.mode !== 'follow') return;  // no point in browse
+    PanelStore.followPaused = true;
+    if (returnBtn) returnBtn.hidden = false;
+  };
+  viewport.addEventListener('wheel', pauseFollow, { passive: true });
+  viewport.addEventListener('touchmove', pauseFollow, { passive: true });
+  viewport.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key)) {
+      pauseFollow();
+    }
+  });
+
+  // --- return button ---
+  if (returnBtn) {
+    returnBtn.addEventListener('click', () => {
+      PanelStore.followPaused = false;
+      returnBtn.hidden = true;
+      scrollToCenter(PanelStore.currentTime);
+    });
+  }
+
+  // --- tab switching ---
+  const tabs = document.querySelectorAll('#panel-root .panel-tab');
+  const subtitle = document.getElementById('panel-subtitle');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      if (mode === PanelStore.mode) return;
+      PanelStore.mode = mode;
+      tabs.forEach(t => t.classList.toggle('is-active', t.dataset.mode === mode));
+
+      // Show/hide search input
+      const searchEl = document.getElementById('panel-search');
+      if (searchEl) searchEl.hidden = (mode !== 'browse');
+
+      // Update subtitle
+      if (subtitle) {
+        subtitle.textContent = mode === 'follow'
+          ? '跟随视频播放时刻'
+          : '全量弹幕 · 搜索关键词过滤';
+      }
+
+      // Re-render and reposition
+      if (mode === 'follow') {
+        PanelStore.filter = '';
+        if (searchEl) searchEl.value = '';
+        PanelStore.followPaused = false;
+        if (returnBtn) returnBtn.hidden = true;
+        renderPanelList();
+        scrollToCenter(PanelStore.currentTime);
+      } else {
+        renderPanelList();
+        scrollToNearest(PanelStore.currentTime);
+      }
+    });
+  });
+
+  // --- search input (debounced 200ms) ---
+  const searchEl = document.getElementById('panel-search');
+  if (searchEl) {
+    let timer = null;
+    searchEl.addEventListener('input', e => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        PanelStore.filter = (e.target.value || '').trim();
+        viewport.scrollTop = 0;
+        renderPanelList();
+      }, 200);
+    });
+  }
+
+  // --- row click → seekAll (▲ badge handler takes priority) ---
+  const rowsEl = document.getElementById('panel-rows');
+  if (rowsEl) {
+    rowsEl.addEventListener('click', e => {
+      // ▲ TP badge: scroll to §04 card, do NOT seek
+      const badge = e.target.closest('.panel-row-tp');
+      if (badge) {
+        e.stopPropagation();
+        const tpId = badge.dataset.tpId;
+        const card = document.getElementById('tp-' + tpId);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          card.classList.add('tp-flash');
+          setTimeout(() => card.classList.remove('tp-flash'), 900);
+        }
+        return;
+      }
+
+      const rowEl = e.target.closest('.panel-row');
+      if (!rowEl) return;
+      const t = Number(rowEl.dataset.progress);
+      if (Number.isFinite(t)) {
+        seekAll(t);
+        // Browse mode stays in Browse — do not switch PanelStore.mode here.
+      }
+    });
+  }
+
+  // --- videoApi tick (local mode) ---
+  if (videoApi && typeof videoApi.onTick === 'function') {
+    videoApi.onTick(t => {
+      PanelStore.currentTime = t;
+      scrollToCenter(t);
+    });
+  }
+
+  // --- iframe mode fallback: follow ECG axis pointer hover ---
+  const isIframeMode = (CONFIG.video_mode !== 'local');
+  if (isIframeMode && typeof chart !== 'undefined' && chart) {
+    // ECharts 5: 'updateAxisPointer' fires on any axisPointer movement,
+    // including hover. axesInfo[0].value is the x-axis value (seconds).
+    chart.on('updateAxisPointer', params => {
+      if (!params || !params.axesInfo || !params.axesInfo.length) return;
+      const t = Number(params.axesInfo[0].value);
+      if (!Number.isFinite(t)) return;
+      PanelStore.currentTime = t;
+      scrollToCenter(t);
+      updateCurrentHighlight();
+    });
+
+    // Update subtitle to reflect iframe-mode behavior
+    if (subtitle) subtitle.textContent = 'hover ECG 曲线即跟随';
+  }
+}
+
+function scrollToNearest(t) {
+  const viewport = document.getElementById('panel-viewport');
+  const rows = visibleRows();
+  if (!viewport || rows.length === 0) return;
+  const idx = findRowIdxAt(rows, t);
+  viewport.scrollTop = Math.max(0, (idx * PANEL_ROW_HEIGHT) - 100);
+}
+
 // ---------- bootstrap ----------
 mountVideo();
 if (SCORES.length > 0) {
@@ -862,6 +1279,7 @@ if (SCORES.length > 0) {
 }
 renderDanmakuList();
 renderTurnpoints();
+mountPanel();
 renderLegend();
 
 // bidirectional sync (local video mode only — iframe mode can't read back time)

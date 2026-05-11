@@ -91,6 +91,12 @@ def run(working_dir: Path | str, force: bool = False) -> None:
     scores = json.loads((working_dir / "scores.json").read_text(encoding="utf-8"))
     dms = json.loads((working_dir / "danmaku.json").read_text(encoding="utf-8"))
 
+    # v0.4.0: tag each danmaku with its 0-based index in danmaku.json so that
+    # evidence entries can point back to the source row they came from (used
+    # by the §02 DanmakuPanel's ▲ badges).
+    for i, d in enumerate(dms):
+        d["_idx"] = i
+
     duration = meta["duration_sec"]
     window_size = compute_window_size(duration)
     expected_chunks = _expected_chunk_count(duration, window_size)
@@ -124,7 +130,12 @@ def run(working_dir: Path | str, force: bool = False) -> None:
 
         evidence = pick_evidence(pool, tp["main_dimension"], target=5)
         tp["evidence_danmakus"] = [
-            {"time": d["time"], "text": d["text"], "color": d["color"]}
+            {
+                "time": d["time"],
+                "text": d["text"],
+                "color": d["color"],
+                "dm_index": d["_idx"],  # v0.4.0: Panel ▲ badge lookup key
+            }
             for d in evidence
         ]
         tp["time_start"] = scores[idx]["time_start"]
