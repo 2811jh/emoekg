@@ -853,6 +853,73 @@ function escapeHtml(s) {
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
 
+// ========================================================================
+// DanmakuPanel (v0.4.0)
+// ------------------------------------------------------------------------
+// A §02 right-column panel with two modes (follow / browse), virtual
+// scrolling, and TP evidence ▲ badges. Coexists with the legacy §04
+// `#danmaku-list` — shares the DANMAKUS constant but owns isolated UI
+// state. All elements live under `#panel-root` with the `.panel-*` class
+// namespace to prevent CSS / selector collisions.
+// ========================================================================
+
+const PanelStore = {
+  currentTime: 0,
+  mode: 'follow',        // 'follow' | 'browse'
+  filter: '',
+  followPaused: false,
+  allDanmaku: [],        // sorted-by-time array of { idx, progress, content }
+  tpByDmIdx: new Map(),  // dm_index → { tp_id, tp_type }
+};
+
+// --- row normalization ---------------------------------------------------
+// The raw DANMAKUS array comes from Stage 1 (src/emoekg/_lib/danmaku_client.py
+// normalizes bilibili-api-python output to `{time, text, mode, color, ...}`).
+// Panel only consumes three fields. The normalized row preserves just those
+// plus the 0-based array index (`idx`) — used in `tpByDmIdx` for ▲ badges.
+function normalizePanelRows(raw) {
+  return raw
+    .map((d, i) => ({
+      idx: i,
+      progress: Number(d.time != null ? d.time : (d.progress || 0)),
+      content: String(d.text != null ? d.text : (d.content || '')),
+    }))
+    .sort((a, b) => a.progress - b.progress);
+}
+
+// --- binary search: find idx of last row with progress <= t --------------
+function findRowIdxAt(rows, t) {
+  let lo = 0, hi = rows.length - 1, ans = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (rows[mid].progress <= t) { ans = mid; lo = mid + 1; }
+    else { hi = mid - 1; }
+  }
+  return ans;
+}
+
+function mountPanel() {
+  const root = document.getElementById('panel-root');
+  if (!root) return;
+  try {
+    PanelStore.allDanmaku = normalizePanelRows(DANMAKUS);
+    renderPanelShell(root);
+    renderPanelList();
+    wirePanelEvents();
+    console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus`);
+  } catch (err) {
+    console.error('[Panel] mount failed, hiding panel', err);
+    root.style.display = 'none';
+  }
+}
+
+// Stub functions filled in by later tasks.
+function renderPanelShell(root) {
+  root.innerHTML = '<div class="panel-empty">Shell not implemented yet</div>';
+}
+function renderPanelList() { /* Task B3 */ }
+function wirePanelEvents() { /* Task B4 */ }
+
 // ---------- bootstrap ----------
 mountVideo();
 if (SCORES.length > 0) {
@@ -862,6 +929,7 @@ if (SCORES.length > 0) {
 }
 renderDanmakuList();
 renderTurnpoints();
+mountPanel();
 renderLegend();
 
 // bidirectional sync (local video mode only — iframe mode can't read back time)
