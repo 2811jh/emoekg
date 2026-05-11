@@ -913,10 +913,24 @@ function mountPanel() {
   if (!root) return;
   try {
     PanelStore.allDanmaku = normalizePanelRows(DANMAKUS);
+
+    // Build dm_index → TP metadata map for ▲ badges (v0.4.0)
+    PanelStore.tpByDmIdx = new Map();
+    (TURNPOINTS || []).forEach(tp => {
+      (tp.evidence_danmakus || []).forEach(ed => {
+        if (typeof ed.dm_index === 'number') {
+          PanelStore.tpByDmIdx.set(ed.dm_index, {
+            tp_id: tp.turnpoint_id,
+            tp_type: tp.type || 'peak',
+          });
+        }
+      });
+    });
+
     renderPanelShell(root);
     renderPanelList();
     wirePanelEvents();
-    console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus`);
+    console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus, ${PanelStore.tpByDmIdx.size} ▲ rows`);
   } catch (err) {
     console.error('[Panel] mount failed, hiding panel', err);
     root.style.display = 'none';
