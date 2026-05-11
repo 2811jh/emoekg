@@ -1219,6 +1219,24 @@ function wirePanelEvents() {
       scrollToCenter(t);
     });
   }
+
+  // --- iframe mode fallback: follow ECG axis pointer hover ---
+  const isIframeMode = (CONFIG.video_mode !== 'local');
+  if (isIframeMode && typeof chart !== 'undefined' && chart) {
+    // ECharts 5: 'updateAxisPointer' fires on any axisPointer movement,
+    // including hover. axesInfo[0].value is the x-axis value (seconds).
+    chart.on('updateAxisPointer', params => {
+      if (!params || !params.axesInfo || !params.axesInfo.length) return;
+      const t = Number(params.axesInfo[0].value);
+      if (!Number.isFinite(t)) return;
+      PanelStore.currentTime = t;
+      scrollToCenter(t);
+      updateCurrentHighlight();
+    });
+
+    // Update subtitle to reflect iframe-mode behavior
+    if (subtitle) subtitle.textContent = 'hover ECG 曲线即跟随';
+  }
 }
 
 function scrollToNearest(t) {
