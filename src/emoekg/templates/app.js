@@ -932,6 +932,8 @@ function renderPanelShell(root) {
         <button class="panel-tab" data-mode="browse" role="tab">Browse</button>
       </div>
       <div class="panel-subtitle" id="panel-subtitle">跟随视频播放时刻</div>
+      <input type="text" id="panel-search" class="panel-search"
+             placeholder="搜索弹幕文本..." hidden>
     </div>
     <div class="panel-viewport" id="panel-viewport">
       <div class="panel-padtop" id="panel-padtop"></div>
@@ -983,6 +985,24 @@ function renderPanelList() {
 
   const rows = visibleRows();
   const total = rows.length;
+  const footerCount = document.getElementById('panel-footer-count');
+  const footerTime = document.getElementById('panel-footer-time');
+
+  if (total === 0) {
+    padTop.style.height = '0px';
+    padBot.style.height = '0px';
+    rowsEl.innerHTML = `
+      <div class="panel-empty">
+        ${PanelStore.filter
+          ? `未命中 "${escapeHtml(PanelStore.filter)}" · 试试别的关键词`
+          : '此时段无弹幕'}
+      </div>
+    `;
+    if (footerCount) footerCount.textContent = '0 条';
+    if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
+    return;
+  }
+
   const viewportH = viewport.clientHeight || 400;
   const scrollTop = viewport.scrollTop;
 
@@ -1000,9 +1020,13 @@ function renderPanelList() {
   }
   rowsEl.replaceChildren(frag);
 
-  const footerCount = document.getElementById('panel-footer-count');
-  const footerTime = document.getElementById('panel-footer-time');
-  if (footerCount) footerCount.textContent = `${total} 条`;
+  if (footerCount) {
+    if (PanelStore.filter) {
+      footerCount.textContent = `命中 ${total} / ${PanelStore.allDanmaku.length} 条`;
+    } else {
+      footerCount.textContent = `${total} 条`;
+    }
+  }
   if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
 }
 
@@ -1114,6 +1138,20 @@ function wirePanelEvents() {
       }
     });
   });
+
+  // --- search input (debounced 200ms) ---
+  const searchEl = document.getElementById('panel-search');
+  if (searchEl) {
+    let timer = null;
+    searchEl.addEventListener('input', e => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        PanelStore.filter = (e.target.value || '').trim();
+        viewport.scrollTop = 0;
+        renderPanelList();
+      }, 200);
+    });
+  }
 
   // --- videoApi tick (local mode) ---
   if (videoApi && typeof videoApi.onTick === 'function') {

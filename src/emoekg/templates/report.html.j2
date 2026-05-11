@@ -662,6 +662,22 @@ section.zone::after {
   color: var(--n-6);
   letter-spacing: 0.02em;
 }
+.panel-search {
+  margin-top: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  background-color: var(--n-0);
+  border: 1px solid var(--n-4);
+  border-radius: 3px;
+  color: var(--n-8);
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 120ms;
+  box-sizing: border-box;
+}
+.panel-search:focus { border-color: var(--acc); }
+.panel-search::placeholder { color: var(--n-6); }
 .panel-viewport {
   flex: 1 1 auto;
   overflow-y: auto;
