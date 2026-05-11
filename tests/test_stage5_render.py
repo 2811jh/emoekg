@@ -253,20 +253,25 @@ class TestInsightsRendering:
 
 
 def test_render_includes_panel_root(tmp_path):
-    """v0.4.0: §02 must contain a #panel-root column inside .ecg-row."""
+    """v0.4.1: §02 must contain a #panel-root column inside .media-row."""
     _populate(tmp_path)
     render_report.run(tmp_path, force=True)
     html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
 
     # Panel DOM present
     assert 'id="panel-root"' in html, "Panel root div missing"
-    assert 'class="ecg-row"' in html, ".ecg-row flex container missing"
-    assert 'class="ecg-main"' in html, ".ecg-main left column missing"
+    assert 'class="media-row"' in html, ".media-row flex container missing"
+    assert 'class="video-col"' in html, ".video-col left column missing"
 
-    # Panel comes AFTER .ecg-main (right column in flex-row)
+    # Panel comes AFTER .video-col (right column in flex-row)
     panel_pos = html.index('id="panel-root"')
-    main_pos = html.index('class="ecg-main"')
-    assert panel_pos > main_pos, "Panel must be rendered after ecg-main"
+    main_pos = html.index('class="video-col"')
+    assert panel_pos > main_pos, "Panel must be rendered after video-col"
+
+    # ECG wrap lives OUTSIDE the media-row so it spans full width
+    mediarow_end = html.index('</div>', html.index('id="panel-root"'))
+    ecg_wrap_pos = html.index('class="ecg-wrap"')
+    assert ecg_wrap_pos > mediarow_end, ".ecg-wrap must sit below .media-row (full-width)"
 
 
 def test_render_preserves_legacy_danmaku_stream(tmp_path):

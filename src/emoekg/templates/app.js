@@ -917,9 +917,9 @@ function mountPanel() {
     if (PanelStore.allDanmaku.length === 0) {
       root.innerHTML = `
         <div class="panel-empty">
-          <div class="panel-empty-title">弹幕数据未加载</div>
+          <div class="panel-empty-title">暂无弹幕</div>
           <div class="panel-empty-body">
-            此视频没有历史弹幕，或 danmaku.json 为空。
+            此视频未抓到历史弹幕。
           </div>
         </div>
       `;
@@ -963,12 +963,12 @@ function renderPanelShell(root) {
   root.innerHTML = `
     <div class="panel-header">
       <div class="panel-tabs" role="tablist">
-        <button class="panel-tab is-active" data-mode="follow" role="tab">Follow</button>
-        <button class="panel-tab" data-mode="browse" role="tab">Browse</button>
+        <button class="panel-tab is-active" data-mode="follow" role="tab">跟随</button>
+        <button class="panel-tab" data-mode="browse" role="tab">浏览</button>
       </div>
-      <div class="panel-subtitle" id="panel-subtitle">跟随视频播放时刻</div>
+      <div class="panel-subtitle" id="panel-subtitle">跟随视频播放 / 点击心电图同步</div>
       <input type="text" id="panel-search" class="panel-search"
-             placeholder="搜索弹幕文本..." hidden>
+             placeholder="搜索弹幕..." hidden>
     </div>
     <div class="panel-viewport" id="panel-viewport">
       <div class="panel-padtop" id="panel-padtop"></div>
@@ -999,7 +999,19 @@ function scrollToCenter(t) {
 
   const idx = findRowIdxAt(rows, t);
   const target = (idx * PANEL_ROW_HEIGHT) - (viewport.clientHeight / 2) + (PANEL_ROW_HEIGHT / 2);
-  viewport.scrollTop = Math.max(0, target);
+  const clamped = Math.max(0, target);
+  if (Math.abs(viewport.scrollTop - clamped) < 1) {
+    // scrollTop unchanged → 'scroll' event won't fire; re-render explicitly
+    renderPanelList();
+    updateCurrentHighlight();
+  } else {
+    viewport.scrollTop = clamped;
+    // The 'scroll' event listener will re-render + re-highlight on rAF tick.
+    // Also trigger immediately so the highlight reflects the new time even
+    // before the next paint, which matters for fast successive seeks.
+    renderPanelList();
+    updateCurrentHighlight();
+  }
 }
 
 function updateCurrentHighlight() {
@@ -1091,7 +1103,7 @@ function buildPanelRow(row, absIdx) {
   const badge = tpMeta
     ? `<span class="panel-row-tp tp-type-${tpMeta.tp_type}"
              data-tp-id="${tpMeta.tp_id}"
-             title="TP evidence · 点击跳转 §04 详情">▲</span>`
+             title="此弹幕为情绪转折点佐证 · 点击跳转 §04 详情">▲</span>`
     : '';
 
   el.innerHTML = `
@@ -1174,8 +1186,8 @@ function wirePanelEvents() {
       // Update subtitle
       if (subtitle) {
         subtitle.textContent = mode === 'follow'
-          ? '跟随视频播放时刻'
-          : '全量弹幕 · 搜索关键词过滤';
+          ? '跟随视频播放 / 点击心电图同步'
+          : '全量弹幕 · 关键词检索';
       }
 
       // Re-render and reposition
@@ -1257,8 +1269,8 @@ function wirePanelEvents() {
       updateCurrentHighlight();
     });
 
-    // Update subtitle to reflect iframe-mode behavior
-    if (subtitle) subtitle.textContent = 'hover ECG 曲线即跟随';
+    // Update subtitle to reflect iframe-mode behavior (canvas interactivity only)
+    if (subtitle) subtitle.textContent = '点击或悬停心电图同步';
   }
 }
 
