@@ -1079,6 +1079,42 @@ function wirePanelEvents() {
     });
   }
 
+  // --- tab switching ---
+  const tabs = document.querySelectorAll('#panel-root .panel-tab');
+  const subtitle = document.getElementById('panel-subtitle');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      if (mode === PanelStore.mode) return;
+      PanelStore.mode = mode;
+      tabs.forEach(t => t.classList.toggle('is-active', t.dataset.mode === mode));
+
+      // Show/hide search input
+      const searchEl = document.getElementById('panel-search');
+      if (searchEl) searchEl.hidden = (mode !== 'browse');
+
+      // Update subtitle
+      if (subtitle) {
+        subtitle.textContent = mode === 'follow'
+          ? '跟随视频播放时刻'
+          : '全量弹幕 · 搜索关键词过滤';
+      }
+
+      // Re-render and reposition
+      if (mode === 'follow') {
+        PanelStore.filter = '';
+        if (searchEl) searchEl.value = '';
+        PanelStore.followPaused = false;
+        if (returnBtn) returnBtn.hidden = true;
+        renderPanelList();
+        scrollToCenter(PanelStore.currentTime);
+      } else {
+        renderPanelList();
+        scrollToNearest(PanelStore.currentTime);
+      }
+    });
+  });
+
   // --- videoApi tick (local mode) ---
   if (videoApi && typeof videoApi.onTick === 'function') {
     videoApi.onTick(t => {
