@@ -11,7 +11,7 @@
 
 ## 背景
 
-截至 v0.3.1，emoekg 报告提供 ECG 曲线 + 8 维情绪轮 + 3-5 条转折点佐证弹幕。研究员工作流中的一个缺口：**看到 ECG 峰值时，想对齐当时的原始弹幕上下文**，现在只能回到 §03 看少量 evidence 或手动翻 §02 tooltip。
+截至 v0.3.1，emoekg 报告提供 ECG 曲线 + 8 维情绪轮 + 3-5 条转折点佐证弹幕。研究员工作流中的一个缺口：**看到 ECG 峰值时，想对齐当时的原始弹幕上下文**，现在只能回到 §04 看少量 evidence 或手动翻 §02 tooltip。
 
 v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG（现有），右列新增**弹幕流面板**（`DanmakuPanel`），把全量弹幕池作为一等公民放进报告，与视频 / ECG / TP 双向绑定。面板随 §02 一起滚动，离开 §02 区域时自然消失——不做 fixed 挂件。
 
@@ -22,7 +22,7 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 1. §02 主可视化区拆为左右双列：左列 video / ECG 堆叠（现有），右列嵌入弹幕流面板（约 35% 宽），不侵入 §01 / §03-§05 的 DOM 与事件
 2. 两种模式：**Follow**（跟视频 / TP 走）、**Browse**（全量 + 文本检索）
 3. 支持 48 min × 1886 条样本零卡顿，支持 SPARSE 样本降级
-4. 每条作为 TP evidence 的弹幕行打 `▲` 徽章，点击跳 §03 TP 卡片
+4. 每条作为 TP evidence 的弹幕行打 `▲` 徽章，点击跳 §04 TP 卡片
 
 **非目标**
 
@@ -30,6 +30,30 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 - 导出选中弹幕（v0.5 候选）
 - 单条弹幕情绪打分（数据层不支持）
 - Live 直播弹幕（emoekg 本不做）
+
+---
+
+## 与现有组件的关系（共存说明）
+
+v0.3.x 的 §04 Analysis 里已经有一个静态的 **Danmaku stream 子列**（`#danmaku-list` + `#dm-search` + `#dm-filter`），承担"看 TP 时过滤对应 evidence"的任务。v0.4.0 的 DanmakuPanel 与它**共存、不替换**：
+
+| 维度 | §04 Danmaku stream（v0.3.x 遗留） | DanmakuPanel（v0.4.0 新增） |
+|---|---|---|
+| 位置 | §04 右子列（页面下方） | §02 右列（页面上方） |
+| 主要用途 | 看 TP 详情时过滤 evidence | 看 ECG 高峰时对齐原声 |
+| 搜索 | `#dm-search` | 独立搜索框（Browse 模式）|
+| 维度过滤 | `#dm-filter`（8 维 chip） | 不支持 |
+| 自动跟随 | `highlightDanmakuAt(t)` 单项高亮 | 双模式（Follow / Browse） |
+| 虚拟滚动 | 否（一次渲染 N 条 DOM） | 是（行高 44px 固定） |
+
+**共存机制**
+
+- **共享数据源**：两者都从 `<script id="data-danmakus">` 读完整 `DANMAKUS` 数组，不重复注入
+- **独立状态**：各自维护搜索关键词、滚动位置、active row，互不触发、互不感知
+- **统一副作用**：两者点击弹幕行都经 `seekAll(t)`——现有 `highlightDanmakuAt(t)` 会顺带高亮 §04 里的对应行（向下兼容行为），但不触发 Panel 的 active row 变化
+- **DOM id 命名空间隔离**：Panel 新元素统一用 `#panel-*` / `.panel-*` 前缀，避免与 `#dm-search` / `#danmaku-list` 撞车
+
+**以后的潜在迁移（非本 plan 范围）：** 一旦 Panel 稳定（~ v0.5），可以评估删除 §04 Danmaku stream 子列、把空间还给 TP 详情。本版本明确不做。
 
 ---
 
@@ -57,9 +81,9 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 │  │                                                         │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                                                              │
-│  §03 TP Details   ← 滚到这里时 DanmakuPanel 已滚离视口       │
-│  §04 Wheel                                                   │
-│  §05 Method                                                  │
+│  §03 Plutchik Wheel                                          │
+│  §04 Analysis (TP 列表)   ← 滚到这里时 DanmakuPanel 已离开视口  │
+│  §05 Legend                                                  │
 └──────────────────────────────────────────────────────────────┘
            ↕ emoekg.bus (已有 seekAll / TPSelect 事件)
            新增订阅: video.timeupdate / dom events
@@ -82,7 +106,7 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 └─────────────────────────┘
 ```
 
-**数据注入：** `render_report.py` 在渲染 HTML 时把精简后的 `danmaku.json`（只留 `id` / `time` / `text`）内联到 `<script id="danmaku-data" type="application/json">`。48 min × 1886 条约 100-150 KB，可接受。
+**数据注入：复用不新增。** `render_report.py` 现在已经把完整 `danmaku.json` 内联到 `<script type="application/json" id="data-danmakus">`（供 §04 旧 Danmaku stream 使用）。v0.4.0 的 DanmakuPanel **复用同一数据源**，Panel 端按需取字段（`id` / `progress` / `content`）——不做服务端精简，不加新的 `<script>` 标签，避免双份数据膨胀 HTML 体积。48 min × 1886 条现状内联体积约 400 KB，仍在可接受范围。
 
 **状态单源：** 一个全局 `DanmakuStore` 对象。字段：
 - `currentTime: number` — 当前视频时刻
@@ -93,7 +117,7 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 
 所有 UI 是该 store 的 reflection。
 
-**定位策略：** 面板 inline 在 §02 section 内，用 CSS flex 布局（`display: flex; flex-direction: row`）。左列 `flex: 0 0 65%`，右列 `flex: 1`（约 35%）。面板高度跟随左列的内容高度（min-height 匹配 video+ECG 的总高度，避免左右两列错位）。自然随页面滚动——滚到 §03 时面板一起离开视口，不再占据视觉空间。
+**定位策略：** 面板 inline 在 §02 section 内，用 CSS flex 布局（`display: flex; flex-direction: row`）。左列 `flex: 0 0 65%`，右列 `flex: 1`（约 35%）。面板高度跟随左列的内容高度（min-height 匹配 video+ECG 的总高度，避免左右两列错位）。自然随页面滚动——滚离 §02 时面板一起离开视口，不再占据视觉空间。
 
 ---
 
@@ -105,9 +129,10 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 
 | 优先级 | 触发 | 中心时间 |
 |---|---|---|
-| 1 | 视频正在播放 | `video.currentTime`（浏览器节流 ~250ms） |
-| 2 | 用户刚点了 TP | TP 的 `time_peak`（持续到下次 seek 或播放） |
-| 3 | 其它静止态 | 最后一次中心时间（不动） |
+| 1 | local 模式视频播放 | `videoApi.onTick(cb)` 回调（HTMLVideo timeupdate，~250ms 节流） |
+| 2 | iframe 模式（无法读播放时刻） | 跟 ECG chart axisPointer hover 位置 |
+| 3 | 任意模式，用户点 TP / chart / 弹幕行 | `seekAll(t)` 触发时的 `t`（持续到下次更新） |
+| 4 | 其它静止态 | 最后一次中心时间（不动） |
 
 **列表布局——居中式**
 
@@ -176,9 +201,9 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 若一条弹幕是某 TP 的 evidence，行尾打一个 `▲`：
 
 - 数据来源：`turnpoints.json` 里 `evidence` 字段包含的 `danmaku_id`
-- 点 `▲` 不触发 seek，只 `scrollIntoView` 到 §03 对应 TP 卡片
+- 点 `▲` 不触发 seek，只 `scrollIntoView` 到 §04 Analysis 对应 TP 卡片
 - 颜色跟 TP 类型：peak → `--tp-peak`，valley → `--tp-valley`，shift → `--tp-shift`
-- hover 放大 1.2x（复用 §03 既有动画）
+- hover 放大 1.2x（复用 §04 既有 TP 徽章动画）
 
 **明确不做（YAGNI）**
 
@@ -200,7 +225,7 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
 | `video.timeupdate` | 视频原生 | Panel (Follow) | 更新 store.currentTime → Follow 居中 |
 | `seekAll(time)` | 任意组件 | 所有组件 | 全局同步 seek |
 | Panel 点弹幕行 | Panel | `seekAll(t)` | 广播 |
-| Panel 点 `▲` | Panel | §03 TP 卡片 | `scrollIntoView`，不广播 seek |
+| Panel 点 `▲` | Panel | §04 TP 卡片 | `scrollIntoView`，不广播 seek |
 
 **四条核心数据流**
 
@@ -211,10 +236,11 @@ v0.4.0 把 §02 主可视化区改为**左右双列**：左列保留 video / ECG
         → Follow: 重算 ±20s 窗口 + scrollToCenter(t)
 
 ② 点 ECG / TP / 弹幕行 → 全局 seek → 各组件响应
-   发起方 → seekAll(t)
-     ├→ <video>.currentTime = t
-     ├→ ECG markLine 移到 t
-     └→ store.currentTime = t
+   发起方 → seekAll(t)                   // 现有函数, src/emoekg/templates/app.js:503
+     ├→ videoApi.seek(t)                 // local: video.currentTime; iframe: 改 iframe.src
+     ├→ highlightDanmakuAt(t)            // 现有 §04 Danmaku stream 高亮（共存, 不干扰）
+     ├→ scrollVideoIntoView()            // 视频不在视口时才滚动 — Panel 就在 §02 内, 多数时是原地
+     └→ (v0.4.0 新增) store.currentTime = t
           ├→ Follow: 重新居中
           └→ Browse: 列表轻滚到最近 t 行（不切 tab）
 
@@ -355,7 +381,7 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 
 - 尺寸 10px，行尾靠右
 - 颜色跟 TP 类型：`--tp-peak` / `--tp-valley` / `--tp-shift`
-- hover 放大 1.2x（复用 §03 `transform: scale(1.2)` 动画）
+- hover 放大 1.2x（复用 §04 `transform: scale(1.2)` 动画 token）
 
 **响应式（窄屏堆叠）**
 
@@ -375,7 +401,7 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 | `currentTime` 超出弹幕时间范围 | 空窗口 + 占位 "此时段无弹幕" |
 | 搜索无命中 | 空态："未命中 '春晚' · 试试别的关键词" |
 | `JSON.parse` 失败 | `console.error` + 面板 `display:none`，不破坏 §01-§05 |
-| 无 `<video>`（非 `--with-video` 模式） | 布局保持 row，左列只剩 ECG 方格纸；Follow 绑定从 `video.timeupdate` 改为 ECG chart 的 `axisPointer` 变化事件；Tab 条说明文案改 "hover ECG 即跟随" |
+| **iframe 模式**（非 `--with-video`，默认模式） | 布局保持 row，左列显示 Bilibili iframe + ECG 方格纸；`videoApi.currentTime()` 返回 null、`onTick` 是 no-op；Follow 降级为跟 ECG chart axisPointer 的 hover 位置 + 最近一次 `seekAll(t)`；Tab 条下方 subtitle 文案改为 "hover ECG 曲线即跟随" |
 
 **关键原则：** 面板失败绝不拖垮主报告。所有 Panel 相关入口包 `try-catch`，失败时 `display:none` 静默退出。§02 左列（video / ECG）继续独立渲染——研究员至少还能看到现有的主可视化。
 
@@ -406,7 +432,7 @@ currentTP = turnpoints.find(tp => Math.abs(tp.time_peak - store.currentTime) < 2
 
 - ✅ 播放视频，Follow 每秒居中一次
 - ✅ 点弹幕行，视频 seek、ECG markLine 移动
-- ✅ 点 `▲` 徽章，§03 卡片滚到视口
+- ✅ 点 `▲` 徽章，§04 TP 卡片滚到视口
 - ✅ 切 Browse，搜索框 filter 实时
 - ✅ Browse 点弹幕不切 tab
 - ✅ 48 min 1886 条样本滚动无卡顿（BV1arcxz5Epf）
