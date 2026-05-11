@@ -930,6 +930,15 @@ function mountPanel() {
     renderPanelShell(root);
     renderPanelList();
     wirePanelEvents();
+
+    // SPARSE-sample affordance: tell the researcher follow is effectively disabled
+    if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) {
+      const subtitle = document.getElementById('panel-subtitle');
+      if (subtitle) {
+        subtitle.textContent = `样本较少（${PanelStore.allDanmaku.length} 条）· 全部显示`;
+      }
+    }
+
     console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus, ${PanelStore.tpByDmIdx.size} ▲ rows`);
   } catch (err) {
     console.error('[Panel] mount failed, hiding panel', err);
@@ -964,10 +973,13 @@ function renderPanelShell(root) {
 
 const PANEL_ROW_HEIGHT = 44;
 const PANEL_BUFFER_ROWS = 5;
+const SPARSE_THRESHOLD = 20;
 
 function scrollToCenter(t) {
   if (PanelStore.followPaused) return;
   if (PanelStore.mode !== 'follow') return;
+  // SPARSE sample: whole list fits in viewport anyway, skip centering
+  if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) return;
 
   const viewport = document.getElementById('panel-viewport');
   const rows = PanelStore.allDanmaku;
@@ -976,7 +988,6 @@ function scrollToCenter(t) {
   const idx = findRowIdxAt(rows, t);
   const target = (idx * PANEL_ROW_HEIGHT) - (viewport.clientHeight / 2) + (PANEL_ROW_HEIGHT / 2);
   viewport.scrollTop = Math.max(0, target);
-  // renderPanelList fires automatically via the scroll listener
 }
 
 function updateCurrentHighlight() {
