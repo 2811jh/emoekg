@@ -1161,6 +1161,20 @@ function wirePanelEvents() {
     });
   }
 
+  // --- row click → seekAll (▲ badge handler takes priority in Phase D) ---
+  const rowsEl = document.getElementById('panel-rows');
+  if (rowsEl) {
+    rowsEl.addEventListener('click', e => {
+      const rowEl = e.target.closest('.panel-row');
+      if (!rowEl) return;
+      const t = Number(rowEl.dataset.progress);
+      if (Number.isFinite(t)) {
+        seekAll(t);
+        // Browse mode stays in Browse — do not switch PanelStore.mode here.
+      }
+    });
+  }
+
   // --- videoApi tick (local mode) ---
   if (videoApi && typeof videoApi.onTick === 'function') {
     videoApi.onTick(t => {
