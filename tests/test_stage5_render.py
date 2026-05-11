@@ -245,3 +245,42 @@ class TestInsightsRendering:
         # 2 well-shaped insights after filtering.
         assert html.count('class="insight"') == 2
         assert "A" in html and "B" in html and "b2" in html
+
+
+# ---------------------------------------------------------------------------
+# v0.4.0 DanmakuPanel
+# ---------------------------------------------------------------------------
+
+
+def test_render_includes_panel_root(tmp_path):
+    """v0.4.0: §02 must contain a #panel-root column inside .ecg-row."""
+    _populate(tmp_path)
+    render_report.run(tmp_path, force=True)
+    html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+
+    # Panel DOM present
+    assert 'id="panel-root"' in html, "Panel root div missing"
+    assert 'class="ecg-row"' in html, ".ecg-row flex container missing"
+    assert 'class="ecg-main"' in html, ".ecg-main left column missing"
+
+    # Panel comes AFTER .ecg-main (right column in flex-row)
+    panel_pos = html.index('id="panel-root"')
+    main_pos = html.index('class="ecg-main"')
+    assert panel_pos > main_pos, "Panel must be rendered after ecg-main"
+
+
+def test_render_preserves_legacy_danmaku_stream(tmp_path):
+    """v0.3.x §04 Danmaku stream must still be present (coexistence)."""
+    _populate(tmp_path)
+    render_report.run(tmp_path, force=True)
+    html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+
+    # Legacy elements unchanged
+    assert 'id="danmaku-list"' in html, "Legacy §04 danmaku-list missing"
+    assert 'id="dm-search"' in html, "Legacy §04 dm-search missing"
+    assert 'id="dm-filter"' in html, "Legacy §04 dm-filter missing"
+
+    # Single source of truth for danmaku data
+    assert html.count('id="data-danmakus"') == 1, (
+        "Exactly one data-danmakus embed expected"
+    )
