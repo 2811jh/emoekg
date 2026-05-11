@@ -1051,9 +1051,17 @@ function buildPanelRow(row, absIdx) {
   el.title = row.content;
   el.innerHTML = `
     <span class="panel-row-time">${formatMMSS(row.progress)}</span>
-    <span class="panel-row-text">${escapeHtml(row.content)}</span>
+    <span class="panel-row-text">${highlightKeyword(row.content, PanelStore.filter)}</span>
   `;
   return el;
+}
+
+function highlightKeyword(text, keyword) {
+  if (!keyword) return escapeHtml(text);
+  const escaped = escapeHtml(text);
+  const needle = escapeHtml(keyword);
+  const re = new RegExp('(' + needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return escaped.replace(re, '<mark class="panel-hl">$1</mark>');
 }
 
 function formatMMSS(sec) {
