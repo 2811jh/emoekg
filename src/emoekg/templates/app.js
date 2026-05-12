@@ -504,20 +504,10 @@ function seekAll(sec) {
   if (videoApi) videoApi.seek(sec);
   highlightDanmakuAt(sec);
   scrollVideoIntoView();
-  // v0.4.0: Panel follows the seek
-  if (typeof PanelStore !== 'undefined') {
-    PanelStore.currentTime = sec;
-    PanelStore.followPaused = false;
-    const rbtn = document.getElementById('panel-return');
-    if (rbtn) rbtn.hidden = true;
-    if (PanelStore.mode === 'follow') scrollToCenter(sec);
-    else scrollToNearest(sec);
-    updateCurrentHighlight();
-    // v0.4.3: vital cursor reflects the jump
-    if (typeof updateVitalTime === 'function') {
-      const status = (CONFIG.video_mode === 'local') ? '播放中' : '已跳转';
-      updateVitalTime(sec, status);
-    }
+  // v0.4.4: drive the vital console directly (no panel scroll, no mode switch)
+  if (typeof updateVitalReadout === 'function') {
+    const status = (CONFIG.video_mode === 'local') ? '播放中' : '已跳转';
+    updateVitalReadout(sec, status);
   }
 }
 
@@ -878,13 +868,24 @@ function escapeHtml(s) {
 // namespace to prevent CSS / selector collisions.
 // ========================================================================
 
+// v0.4.4: 8 Plutchik dims with display copy + colours. Order is the
+// canonical wheel order (joy → anticipation → trust → ... → anger).
+const DIMENSIONS_META = [
+  { key: 'joy',          en: 'JOY',   zh: '喜悦', color: '#F4C95D' },
+  { key: 'anticipation', en: 'ANTI',  zh: '期待', color: '#E89B5C' },
+  { key: 'trust',        en: 'TRUST', zh: '信任', color: '#6FAE6E' },
+  { key: 'surprise',     en: 'SURP',  zh: '惊讶', color: '#D9A14A' },
+  { key: 'fear',         en: 'FEAR',  zh: '恐惧', color: '#6E7AA6' },
+  { key: 'sadness',      en: 'SAD',   zh: '悲伤', color: '#4A6E8C' },
+  { key: 'disgust',      en: 'DISG',  zh: '厌恶', color: '#8C5A8E' },
+  { key: 'anger',        en: 'ANGER', zh: '愤怒', color: '#C8472D' },
+];
+const POSITIVE_DIMS = ['joy', 'trust', 'anticipation', 'surprise'];
+const NEGATIVE_DIMS = ['fear', 'sadness', 'disgust', 'anger'];
+
 const PanelStore = {
   currentTime: 0,
-  mode: 'follow',        // 'follow' | 'browse'
-  filter: '',
-  followPaused: false,
-  allDanmaku: [],        // sorted-by-time array of { idx, progress, content }
-  tpByDmIdx: new Map(),  // dm_index → { tp_id, tp_type }
+  tpByDmIdx: new Map(),  // dm_index → { tp_id, tp_type } (kept for §04 ▲ badges in renderTurnpoints)
 };
 
 // --- row normalization ---------------------------------------------------
@@ -917,410 +918,340 @@ function mountPanel() {
   const root = document.getElementById('panel-root');
   if (!root) return;
   try {
-    PanelStore.allDanmaku = normalizePanelRows(DANMAKUS);
-
-    if (PanelStore.allDanmaku.length === 0) {
+    if (!Array.isArray(DANMAKUS) || DANMAKUS.length === 0) {
       root.innerHTML = `
         <div class="panel-empty">
           <div class="panel-empty-title">暂无弹幕</div>
-          <div class="panel-empty-body">
-            此视频未抓到历史弹幕。
-          </div>
+          <div class="panel-empty-body">此视频未抓到历史弹幕。</div>
         </div>
       `;
       return;
     }
 
-    // Build dm_index → TP metadata map for ▲ badges (v0.4.0)
-    PanelStore.tpByDmIdx = new Map();
-    (TURNPOINTS || []).forEach(tp => {
-      (tp.evidence_danmakus || []).forEach(ed => {
-        if (typeof ed.dm_index === 'number') {
-          PanelStore.tpByDmIdx.set(ed.dm_index, {
-            tp_id: tp.turnpoint_id,
-            tp_type: tp.type || 'peak',
-          });
-        }
-      });
-    });
-
     renderPanelShell(root);
-    renderPanelList();
+    syncPanelHeight();          // lock panel height to video height
+    bindBilibiliPostMessage();  // best-effort iframe progress listener
     wirePanelEvents();
-    syncPanelHeight();          // v0.4.2: lock panel height to video height
-    bindBilibiliPostMessage();  // v0.4.2: try to follow iframe player progress
-
-    // SPARSE-sample affordance: tell the researcher follow is effectively disabled
-    if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) {
-      const hint = document.getElementById('panel-hint-mini');
-      if (hint) hint.textContent = `仅 ${PanelStore.allDanmaku.length} 条`;
-    }
-
-    console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus, ${PanelStore.tpByDmIdx.size} ▲ rows`);
+    updateVitalReadout(0, '待同步');  // initial paint at t=0
+    console.log(`[Panel] vital console mounted with ${DANMAKUS.length} danmakus`);
   } catch (err) {
     console.error('[Panel] mount failed, hiding panel', err);
     root.style.display = 'none';
   }
 }
 
-// Stub functions filled in by later tasks.
+// v0.4.4: Vital console — big serif time code + dominant emotion,
+// 8-dim readout bars (2-col grid), nearby danmaku trail.
 function renderPanelShell(root) {
-  // v0.4.3: editorial vital sign monitor — big serif time code at top,
-  // segmented pill toggle, scan-line current row, ribbon footer.
+  const dimsHtml = DIMENSIONS_META.map(d => `
+    <div class="vd-row" data-dim="${d.key}">
+      <span class="vd-name">
+        <span class="vd-en">${d.en}</span>
+        <span class="vd-zh">${d.zh}</span>
+      </span>
+      <div class="vd-bar"><div class="vd-fill" id="vd-fill-${d.key}"></div></div>
+      <span class="vd-num" id="vd-num-${d.key}">0</span>
+    </div>
+  `).join('');
+
   root.innerHTML = `
-    <div class="panel-vital">
-      <span class="panel-vital-time" id="panel-vital-time" aria-live="polite">
-        <span class="vital-min">00</span><span class="vital-colon">:</span><span class="vital-sec">00</span>
+    <header class="vital-card">
+      <span class="vital-time-code" id="vital-time-code" aria-live="polite">
+        <span class="vt-min">00</span><span class="colon">:</span><span class="vt-sec">00</span>
       </span>
-      <span class="panel-vital-meta">
-        <span><span class="pulse"></span><span id="panel-vital-status">SYNCED</span></span>
-        <span>WATCHING WITH ECG</span>
-      </span>
-    </div>
-    <div class="panel-header">
-      <div class="panel-tabs" role="tablist">
-        <button class="panel-tab is-active" data-mode="follow" role="tab">▶ 跟随</button>
-        <button class="panel-tab" data-mode="browse" role="tab">⌕ 检索</button>
+      <div class="vital-dom">
+        <span>DOMINANT</span>
+        <span class="vital-dom-name" id="vital-dom-name">—</span>
+        <span class="vital-dom-score" id="vital-dom-score">0/10</span>
       </div>
-      <span class="panel-hint-mini" id="panel-hint-mini">点 ECG 跳转</span>
-    </div>
-    <input type="text" id="panel-search" class="panel-search"
-           placeholder="搜索弹幕关键词…" hidden>
-    <div class="panel-viewport" id="panel-viewport">
-      <div class="panel-padtop" id="panel-padtop"></div>
-      <div class="panel-rows" id="panel-rows"></div>
-      <div class="panel-padbot" id="panel-padbot"></div>
-    </div>
-    <button class="panel-return" id="panel-return" hidden>↓ 回到当前</button>
-    <div class="panel-footer" id="panel-footer">
-      <span id="panel-footer-count">—</span>
-      <span id="panel-footer-time">—</span>
-    </div>
+      <div class="vital-status">
+        <span class="pulse"></span><span id="vital-status-text">待同步</span>
+      </div>
+    </header>
+
+    <section class="vital-dims" id="vital-dims">${dimsHtml}</section>
+
+    <section class="vital-dms" id="vital-dms">
+      <div class="vital-dms-head">
+        <span>该时刻 · 邻近弹幕 (±20s)</span>
+        <span class="count" id="vital-dms-count">0 条</span>
+      </div>
+      <div id="vital-dms-list"></div>
+    </section>
   `;
 }
 
-const PANEL_ROW_HEIGHT = 26;
-const PANEL_BUFFER_ROWS = 8;
-const SPARSE_THRESHOLD = 20;
-
-function scrollToCenter(t) {
-  if (PanelStore.followPaused) return;
-  if (PanelStore.mode !== 'follow') return;
-  // SPARSE sample: whole list fits in viewport anyway, skip centering
-  if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) return;
-
-  const viewport = document.getElementById('panel-viewport');
-  const rows = PanelStore.allDanmaku;
-  if (!viewport || rows.length === 0) return;
-
-  const idx = findRowIdxAt(rows, t);
-  const target = (idx * PANEL_ROW_HEIGHT) - (viewport.clientHeight / 2) + (PANEL_ROW_HEIGHT / 2);
-  const clamped = Math.max(0, target);
-  if (Math.abs(viewport.scrollTop - clamped) < 1) {
-    // scrollTop unchanged → 'scroll' event won't fire; re-render explicitly
-    renderPanelList();
-    updateCurrentHighlight();
-  } else {
-    viewport.scrollTop = clamped;
-    // The 'scroll' event listener will re-render + re-highlight on rAF tick.
-    // Also trigger immediately so the highlight reflects the new time even
-    // before the next paint, which matters for fast successive seeks.
-    renderPanelList();
-    updateCurrentHighlight();
-  }
-}
-
-function updateCurrentHighlight() {
-  const t = PanelStore.currentTime;
-  document.querySelectorAll('#panel-rows .panel-row').forEach(el => {
-    const p = Number(el.dataset.progress);
-    el.classList.remove('is-current', 'is-edge');
-    const dt = Math.abs(p - t);
-    if (dt < 1) el.classList.add('is-current');
-    else if (dt >= 18 && dt < 20) el.classList.add('is-edge');
-  });
-  updateVitalTime(t);
-}
-
-// v0.4.3: vital cursor time code at top of panel (mm:ss with blinking colon).
-// Called whenever PanelStore.currentTime moves (ECG hover, click, panel
-// scroll, video tick). Also updates the small status word.
-function updateVitalTime(sec, status) {
-  const el = document.getElementById('panel-vital-time');
-  if (el) {
-    const total = Math.max(0, Math.floor(sec || 0));
-    const mm = String(Math.floor(total / 60)).padStart(2, '0');
-    const ss = String(total % 60).padStart(2, '0');
-    const minEl = el.querySelector('.vital-min');
-    const secEl = el.querySelector('.vital-sec');
-    if (minEl) minEl.textContent = mm;
-    if (secEl) secEl.textContent = ss;
-  }
-  if (status !== undefined) {
-    const s = document.getElementById('panel-vital-status');
-    if (s) s.textContent = status;
-  }
-}
-
-function renderPanelList() {
-  const viewport = document.getElementById('panel-viewport');
-  const padTop = document.getElementById('panel-padtop');
-  const padBot = document.getElementById('panel-padbot');
-  const rowsEl = document.getElementById('panel-rows');
-  if (!viewport || !rowsEl) return;
-
-  const rows = visibleRows();
-  const total = rows.length;
-  const footerCount = document.getElementById('panel-footer-count');
-  const footerTime = document.getElementById('panel-footer-time');
-
-  if (total === 0) {
-    padTop.style.height = '0px';
-    padBot.style.height = '0px';
-    rowsEl.innerHTML = `
-      <div class="panel-empty">
-        ${PanelStore.filter
-          ? `未命中 "${escapeHtml(PanelStore.filter)}" · 试试别的关键词`
-          : '此时段无弹幕'}
-      </div>
-    `;
-    if (footerCount) footerCount.textContent = '0 条';
-    if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
-    return;
-  }
-
-  const viewportH = viewport.clientHeight || 400;
-  const scrollTop = viewport.scrollTop;
-
-  const startIdx = Math.max(0,
-    Math.floor(scrollTop / PANEL_ROW_HEIGHT) - PANEL_BUFFER_ROWS);
-  const visibleCount = Math.ceil(viewportH / PANEL_ROW_HEIGHT) + PANEL_BUFFER_ROWS * 2;
-  const endIdx = Math.min(total, startIdx + visibleCount);
-
-  padTop.style.height = (startIdx * PANEL_ROW_HEIGHT) + 'px';
-  padBot.style.height = ((total - endIdx) * PANEL_ROW_HEIGHT) + 'px';
-
-  const frag = document.createDocumentFragment();
-  for (let i = startIdx; i < endIdx; i++) {
-    frag.appendChild(buildPanelRow(rows[i], i));
-  }
-  rowsEl.replaceChildren(frag);
-
-  if (footerCount) {
-    if (PanelStore.filter) {
-      footerCount.textContent = `命中 ${total} / ${PanelStore.allDanmaku.length} 条`;
-    } else {
-      footerCount.textContent = `${total} 条`;
-    }
-  }
-  if (footerTime) footerTime.textContent = formatMMSS(PanelStore.currentTime);
-}
-
-function visibleRows() {
-  // Follow mode: always full list (centered via scrollTop)
-  // Browse mode: filtered rows (Task C2)
-  if (PanelStore.mode === 'browse' && PanelStore.filter) {
-    const needle = PanelStore.filter.toLowerCase();
-    return PanelStore.allDanmaku.filter(r =>
-      r.content.toLowerCase().includes(needle));
-  }
-  return PanelStore.allDanmaku;
-}
-
-function buildPanelRow(row, absIdx) {
-  const el = document.createElement('div');
-  el.className = 'panel-row';
-  el.dataset.idx = absIdx;
-  el.dataset.dmIdx = row.idx;
-  el.dataset.progress = row.progress;
-  el.style.height = PANEL_ROW_HEIGHT + 'px';
-  el.title = row.content;
-
-  const tpMeta = PanelStore.tpByDmIdx.get(row.idx);
-  const badge = tpMeta
-    ? `<span class="panel-row-tp tp-type-${tpMeta.tp_type}"
-             data-tp-id="${tpMeta.tp_id}"
-             title="此弹幕为情绪转折点佐证 · 点击跳转 §04 详情">▲</span>`
-    : '';
-
-  el.innerHTML = `
-    <span class="panel-row-time">${formatMMSS(row.progress)}</span>
-    <span class="panel-row-text">${highlightKeyword(row.content, PanelStore.filter)}</span>
-    ${badge}
-  `;
-  return el;
-}
-
-function highlightKeyword(text, keyword) {
-  if (!keyword) return escapeHtml(text);
-  const escaped = escapeHtml(text);
-  const needle = escapeHtml(keyword);
-  const re = new RegExp('(' + needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-  return escaped.replace(re, '<mark class="panel-hl">$1</mark>');
-}
-
+// v0.4.4: utilities used by vital console + danmaku list (formatMMSS still
+// referenced by §05 renderDanmakuList).
 function formatMMSS(sec) {
-  const s = Math.floor(sec);
+  const s = Math.max(0, Math.floor(sec || 0));
   const mm = String(Math.floor(s / 60)).padStart(2, '0');
   const ss = String(s % 60).padStart(2, '0');
   return `${mm}:${ss}`;
 }
 
-function wirePanelEvents() {
-  const viewport = document.getElementById('panel-viewport');
-  const returnBtn = document.getElementById('panel-return');
-  if (!viewport) return;
+// Back-compat shims: seekAll + bindBilibiliPostMessage still call these.
+// New behaviour lives in updateVitalReadout.
+function scrollToCenter(t)        { updateVitalReadout(t); }
+function updateCurrentHighlight() { /* vital console paints itself */ }
+function updateVitalTime(sec, status) { updateVitalReadout(sec, status); }
+function scrollToNearest(t)       { updateVitalReadout(t); }
 
-  // --- scroll re-render ---
-  let raf = null;
-  viewport.addEventListener('scroll', () => {
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = null;
-      renderPanelList();
-      updateCurrentHighlight();
-    });
-  });
+/* ====================================================================== *
+ * Vital readout — paint the right-side console for cursor time t.
+ * Three blocks: time code, 8-dim bars + dominant, ±20s danmaku trail.
+ * ====================================================================== */
+function updateVitalReadout(t, status) {
+  const sec = Math.max(0, Number(t) || 0);
+  PanelStore.currentTime = sec;
 
-  // --- user-initiated scroll pauses follow ---
-  const pauseFollow = () => {
-    if (PanelStore.followPaused) return;
-    if (PanelStore.mode !== 'follow') return;  // no point in browse
-    PanelStore.followPaused = true;
-    if (returnBtn) returnBtn.hidden = false;
-  };
-  viewport.addEventListener('wheel', pauseFollow, { passive: true });
-  viewport.addEventListener('touchmove', pauseFollow, { passive: true });
-  viewport.addEventListener('keydown', e => {
-    if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(e.key)) {
-      pauseFollow();
+  // Time code
+  const tc = document.getElementById('vital-time-code');
+  if (tc) {
+    const total = Math.floor(sec);
+    const minEl = tc.querySelector('.vt-min');
+    const secEl = tc.querySelector('.vt-sec');
+    if (minEl) minEl.textContent = String(Math.floor(total / 60)).padStart(2, '0');
+    if (secEl) secEl.textContent = String(total % 60).padStart(2, '0');
+  }
+
+  const score = chunkScoreAt(sec);
+  if (!score) return;
+
+  // 8-dim bars + dominant
+  let domKey = null, domScore = -1;
+  DIMENSIONS_META.forEach(d => {
+    const v = Math.max(0, Math.min(10, score[d.key] || 0));
+    const fillEl = document.getElementById('vd-fill-' + d.key);
+    const numEl  = document.getElementById('vd-num-' + d.key);
+    if (fillEl) fillEl.style.width = (v * 10) + '%';
+    if (numEl)  numEl.textContent  = v.toFixed(0);
+    const row = document.querySelector('.vd-row[data-dim="' + d.key + '"]');
+    if (row) {
+      row.classList.toggle('is-zero', v === 0);
+      row.classList.remove('is-dom');
     }
+    if (v > domScore) { domScore = v; domKey = d.key; }
   });
-
-  // --- return button ---
-  if (returnBtn) {
-    returnBtn.addEventListener('click', () => {
-      PanelStore.followPaused = false;
-      returnBtn.hidden = true;
-      scrollToCenter(PanelStore.currentTime);
-    });
+  if (domKey && domScore > 0) {
+    const domDef = DIMENSIONS_META.find(d => d.key === domKey);
+    const nameEl  = document.getElementById('vital-dom-name');
+    const scoreEl = document.getElementById('vital-dom-score');
+    if (nameEl)  nameEl.textContent  = domDef.zh + ' · ' + domDef.en;
+    if (scoreEl) scoreEl.textContent = domScore + '/10';
+    const row = document.querySelector('.vd-row[data-dim="' + domKey + '"]');
+    if (row) row.classList.add('is-dom');
+  } else {
+    // SPARSE chunk — show ZERO label
+    const nameEl  = document.getElementById('vital-dom-name');
+    const scoreEl = document.getElementById('vital-dom-score');
+    if (nameEl)  nameEl.textContent  = '— 静默 SILENT';
+    if (scoreEl) scoreEl.textContent = '0/10';
   }
 
-  // --- tab switching ---
-  const tabs = document.querySelectorAll('#panel-root .panel-tab');
-  const hint = document.getElementById('panel-hint-mini');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const mode = tab.dataset.mode;
-      if (mode === PanelStore.mode) return;
-      PanelStore.mode = mode;
-      tabs.forEach(t => t.classList.toggle('is-active', t.dataset.mode === mode));
-
-      // Show/hide search input
-      const searchEl = document.getElementById('panel-search');
-      if (searchEl) searchEl.hidden = (mode !== 'browse');
-
-      // Update mini hint
-      if (hint) {
-        hint.textContent = mode === 'follow' ? '心电图同步' : '关键词检索';
-      }
-
-      // Re-render and reposition
-      if (mode === 'follow') {
-        PanelStore.filter = '';
-        if (searchEl) searchEl.value = '';
-        PanelStore.followPaused = false;
-        if (returnBtn) returnBtn.hidden = true;
-        renderPanelList();
-        scrollToCenter(PanelStore.currentTime);
-      } else {
-        renderPanelList();
-        scrollToNearest(PanelStore.currentTime);
-      }
-    });
-  });
-
-  // --- search input (debounced 200ms) ---
-  const searchEl = document.getElementById('panel-search');
-  if (searchEl) {
-    let timer = null;
-    searchEl.addEventListener('input', e => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        PanelStore.filter = (e.target.value || '').trim();
-        viewport.scrollTop = 0;
-        renderPanelList();
-      }, 200);
-    });
+  if (status !== undefined) {
+    const s = document.getElementById('vital-status-text');
+    if (s) s.textContent = status;
   }
 
-  // --- row click → seekAll (▲ badge handler takes priority) ---
-  const rowsEl = document.getElementById('panel-rows');
-  if (rowsEl) {
-    rowsEl.addEventListener('click', e => {
-      // ▲ TP badge: scroll to §04 card, do NOT seek
-      const badge = e.target.closest('.panel-row-tp');
-      if (badge) {
-        e.stopPropagation();
-        const tpId = badge.dataset.tpId;
-        const card = document.getElementById('tp-' + tpId);
-        if (card) {
-          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          card.classList.add('tp-flash');
-          setTimeout(() => card.classList.remove('tp-flash'), 900);
-        }
-        return;
-      }
+  updateVitalDanmakus(sec);
+}
 
-      const rowEl = e.target.closest('.panel-row');
-      if (!rowEl) return;
-      const t = Number(rowEl.dataset.progress);
-      if (Number.isFinite(t)) {
-        seekAll(t);
-        // Browse mode stays in Browse — do not switch PanelStore.mode here.
-      }
-    });
+function chunkScoreAt(sec) {
+  if (!Array.isArray(SCORES) || SCORES.length === 0) return null;
+  for (let i = 0; i < SCORES.length; i++) {
+    const s = SCORES[i];
+    if (sec >= s.time_start && sec < s.time_end) return s;
   }
+  if (sec < SCORES[0].time_start) return SCORES[0];
+  return SCORES[SCORES.length - 1];
+}
 
-  // --- videoApi tick (local mode) ---
-  if (videoApi && typeof videoApi.onTick === 'function') {
-    videoApi.onTick(t => {
-      PanelStore.currentTime = t;
-      scrollToCenter(t);
-    });
+function updateVitalDanmakus(t) {
+  const list  = document.getElementById('vital-dms-list');
+  const count = document.getElementById('vital-dms-count');
+  if (!list) return;
+  const win = 20;
+  const near = (DANMAKUS || []).filter(d => Math.abs(d.time - t) <= win);
+  near.sort((a, b) => Math.abs(a.time - t) - Math.abs(b.time - t));
+  const top = near.slice(0, 12);
+
+  if (count) count.textContent = near.length + ' 条';
+  if (top.length === 0) {
+    list.innerHTML = '<div class="vital-dm-empty">此时段无弹幕</div>';
+    return;
   }
+  list.innerHTML = top.map(d => `
+    <div class="vital-dm" data-time="${d.time}">
+      <span class="vital-dm-time">${formatMMSS(d.time)}</span>
+      <span class="vital-dm-text">${escapeHtml(d.text)}</span>
+    </div>
+  `).join('');
+}
 
-  // --- iframe mode fallback: follow ECG axis pointer hover ---
+function wirePanelEvents() {
   const isIframeMode = (CONFIG.video_mode !== 'local');
-  if (isIframeMode && typeof chart !== 'undefined' && chart) {
-    // ECharts 5: 'updateAxisPointer' fires on any axisPointer movement,
-    // including hover. axesInfo[0].value is the x-axis value (seconds).
+
+  // ECG axis pointer (hover or click) → drive vital readout
+  if (typeof chart !== 'undefined' && chart) {
     chart.on('updateAxisPointer', params => {
       if (!params || !params.axesInfo || !params.axesInfo.length) return;
       const t = Number(params.axesInfo[0].value);
       if (!Number.isFinite(t)) return;
-      PanelStore.currentTime = t;
-      scrollToCenter(t);
-      updateCurrentHighlight();
-      updateVitalTime(t, '预览中');
+      updateVitalReadout(t, isIframeMode ? '预览中' : 'LIVE');
     });
-  } else if (!isIframeMode) {
-    // Local-video mode: hide the "use ECG" ribbon hint, the native
-    // <video> timeupdate already drives the panel.
+  }
+
+  // Click on a danmaku in the trail → jump video there
+  const dmList = document.getElementById('vital-dms-list');
+  if (dmList) {
+    dmList.addEventListener('click', e => {
+      const row = e.target.closest('.vital-dm');
+      if (!row) return;
+      const t = Number(row.dataset.time);
+      if (Number.isFinite(t)) seekAll(t);
+    });
+  }
+
+  // Local-video tick → drive readout in real time
+  if (videoApi && typeof videoApi.onTick === 'function') {
+    videoApi.onTick(t => updateVitalReadout(t, '播放中'));
+  }
+  if (!isIframeMode) {
     const ribbon = document.getElementById('video-col-hint');
     if (ribbon) ribbon.style.display = 'none';
-    updateVitalTime(0, 'LIVE');
-  } else {
-    updateVitalTime(0, '待同步');
   }
 }
 
-function scrollToNearest(t) {
-  const viewport = document.getElementById('panel-viewport');
-  const rows = visibleRows();
-  if (!viewport || rows.length === 0) return;
-  const idx = findRowIdxAt(rows, t);
-  viewport.scrollTop = Math.max(0, (idx * PANEL_ROW_HEIGHT) - 100);
+/* ====================================================================== *
+ * v0.4.4: Vital statistics grid (6 cards) below the ECG. Editorial,
+ * gauge-y, clickable cards that double as quick navigation.
+ * ====================================================================== */
+function renderVitalStats() {
+  const grid = document.getElementById('vital-stats-grid');
+  if (!grid) return;
+  const dur = META.duration_sec || 0;
+
+  // 1. Dominant emotion: argmax sum across non-sparse chunks
+  const sums = {};
+  DIMENSIONS_META.forEach(d => sums[d.key] = 0);
+  let countedChunks = 0;
+  SCORES.forEach(s => {
+    if ((s.n_danmaku || 0) < 3) return;
+    DIMENSIONS_META.forEach(d => sums[d.key] += (s[d.key] || 0));
+    countedChunks++;
+  });
+  const domKey = Object.keys(sums).reduce((a, b) => sums[a] >= sums[b] ? a : b);
+  const domDef = DIMENSIONS_META.find(d => d.key === domKey);
+  const domAvg = countedChunks ? (sums[domKey] / countedChunks) : 0;
+
+  // 2. Totals
+  const total = (DANMAKUS || []).length;
+  const peakChunkN = SCORES.reduce((m, s) => Math.max(m, s.n_danmaku || 0), 0);
+
+  // 3. Turnpoints
+  const tps = TURNPOINTS || [];
+  const peaks   = tps.filter(t => t.type === 'peak');
+  const valleys = tps.filter(t => t.type === 'valley');
+  const shifts  = tps.filter(t => t.type === 'shift');
+
+  // 4 & 5. Strongest peak / valley
+  const strongestOf = (arr) => arr.slice().sort((a, b) => (b.magnitude || 0) - (a.magnitude || 0))[0];
+  const topPeak = strongestOf(peaks) || null;
+  const topVal  = strongestOf(valleys) || null;
+
+  // 6. Polarity (positive avg - negative avg over non-sparse chunks)
+  let posSum = 0, negSum = 0, n = 0;
+  SCORES.forEach(s => {
+    if ((s.n_danmaku || 0) < 3) return;
+    POSITIVE_DIMS.forEach(k => posSum += (s[k] || 0));
+    NEGATIVE_DIMS.forEach(k => negSum += (s[k] || 0));
+    n++;
+  });
+  const polarity = n ? ((posSum / n / 4) - (negSum / n / 4)) : 0;
+  const polarityStr = (polarity >= 0 ? '+' : '') + polarity.toFixed(1);
+
+  // Sparklines
+  const buildSpark = (seq) => {
+    const bars = seq.length > 16 ? sampleArray(seq, 16) : seq;
+    const max  = Math.max(1, ...bars);
+    return bars.map(v => {
+      const h = Math.max(2, (v / max) * 18);
+      return `<span class="${v === 0 ? 'zero' : ''}" style="height:${h.toFixed(1)}px"></span>`;
+    }).join('');
+  };
+  const domSpark = buildSpark(SCORES.map(s => Math.max(0, Math.min(10, s[domKey] || 0))));
+  const dmSpark  = buildSpark(SCORES.map(s => s.n_danmaku || 0));
+
+  const winSec = SCORES[0] ? (SCORES[0].time_end - SCORES[0].time_start) : 30;
+
+  grid.innerHTML = `
+    <article class="vs-card vs-hero">
+      <span class="vs-label">主导情绪 / DOMINANT
+        <span class="vs-corner">${domDef.en}</span>
+      </span>
+      <span class="vs-num"><b>${domDef.zh}</b></span>
+      <span class="vs-sub">全片均强 ${domAvg.toFixed(1)}/10 · 出现于 ${countedChunks} 段</span>
+      <div class="vs-spark">${domSpark}</div>
+    </article>
+    <article class="vs-card">
+      <span class="vs-label">弹幕总量 / DANMAKU
+        <span class="vs-corner">${dur ? Math.round(total / dur * 60) : 0}/min</span>
+      </span>
+      <span class="vs-num">${total.toLocaleString()}<span class="unit">条</span></span>
+      <span class="vs-sub">峰段 ${peakChunkN} 条 · ${winSec}s 窗口</span>
+      <div class="vs-spark">${dmSpark}</div>
+    </article>
+    <article class="vs-card">
+      <span class="vs-label">情绪转折 / TURNPOINTS
+        <span class="vs-corner">N=${tps.length}</span>
+      </span>
+      <span class="vs-num">${tps.length}<span class="unit">个</span></span>
+      <span class="vs-sub">峰 ${peaks.length} · 谷 ${valleys.length} · 反转 ${shifts.length}</span>
+    </article>
+    <article class="vs-card vs-clickable" ${topPeak ? `data-seek="${topPeak.time_start}"` : ''}>
+      <span class="vs-label">最强峰值 / PEAK
+        <span class="vs-corner">${topPeak ? topPeak.main_dimension.toUpperCase() : '—'}</span>
+      </span>
+      <span class="vs-num">${topPeak ? formatMMSS(topPeak.time_start) : '—'}</span>
+      <span class="vs-sub">${topPeak ? '强度 ' + (topPeak.magnitude||0).toFixed(1) + ' · ' + escapeHtml((topPeak.description || '').slice(0, 24)) : '该视频无显著峰值'}</span>
+    </article>
+    <article class="vs-card vs-clickable" ${topVal ? `data-seek="${topVal.time_start}"` : ''}>
+      <span class="vs-label">最低谷值 / VALLEY
+        <span class="vs-corner">${topVal ? topVal.main_dimension.toUpperCase() : '—'}</span>
+      </span>
+      <span class="vs-num">${topVal ? formatMMSS(topVal.time_start) : '—'}</span>
+      <span class="vs-sub">${topVal ? '强度 ' + (topVal.magnitude||0).toFixed(1) + ' · ' + escapeHtml((topVal.description || '').slice(0, 24)) : '该视频无显著谷值'}</span>
+    </article>
+    <article class="vs-card">
+      <span class="vs-label">情绪极性 / POLARITY
+        <span class="vs-corner">-10..+10</span>
+      </span>
+      <span class="vs-num ${polarity > 0 ? 'vs-pos' : (polarity < 0 ? 'vs-neg' : '')}">${polarityStr}</span>
+      <span class="vs-sub">正向 − 负向 均值 · ${polarity > 0.5 ? '整体偏正' : polarity < -0.5 ? '整体偏负' : '中性平衡'}</span>
+    </article>
+  `;
+
+  grid.querySelectorAll('.vs-clickable[data-seek]').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = parseFloat(el.dataset.seek);
+      if (Number.isFinite(t)) seekAll(t);
+    });
+  });
+}
+
+function sampleArray(arr, n) {
+  if (arr.length <= n) return arr;
+  const out = [];
+  const step = arr.length / n;
+  for (let i = 0; i < n; i++) {
+    const start = Math.floor(i * step);
+    const end = Math.floor((i + 1) * step);
+    let max = 0;
+    for (let j = start; j < end; j++) max = Math.max(max, arr[j]);
+    out.push(max);
+  }
+  return out;
 }
 
 // ---------- v0.4.2: panel height sync (no overshoot below video) ----------
@@ -1377,9 +1308,7 @@ function bindBilibiliPostMessage() {
       if (t !== null && Number.isFinite(t) && t >= 0) {
         // Heuristic: bilibili sometimes ships ms instead of seconds.
         if (t > (META.duration_sec || 0) * 5 && META.duration_sec) t = t / 1000;
-        PanelStore.currentTime = t;
-        scrollToCenter(t);
-        updateCurrentHighlight();
+        updateVitalReadout(t, '播放中');
       }
     } catch { /* swallow */ }
   });
@@ -1395,6 +1324,7 @@ if (SCORES.length > 0) {
 renderDanmakuList();
 renderTurnpoints();
 mountPanel();
+if (SCORES.length > 0) renderVitalStats();
 renderLegend();
 
 // bidirectional sync (local video mode only — iframe mode can't read back time)
