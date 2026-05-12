@@ -513,6 +513,11 @@ function seekAll(sec) {
     if (PanelStore.mode === 'follow') scrollToCenter(sec);
     else scrollToNearest(sec);
     updateCurrentHighlight();
+    // v0.4.3: vital cursor reflects the jump
+    if (typeof updateVitalTime === 'function') {
+      const status = (CONFIG.video_mode === 'local') ? '播放中' : '已跳转';
+      updateVitalTime(sec, status);
+    }
   }
 }
 
@@ -960,16 +965,27 @@ function mountPanel() {
 
 // Stub functions filled in by later tasks.
 function renderPanelShell(root) {
+  // v0.4.3: editorial vital sign monitor — big serif time code at top,
+  // segmented pill toggle, scan-line current row, ribbon footer.
   root.innerHTML = `
+    <div class="panel-vital">
+      <span class="panel-vital-time" id="panel-vital-time" aria-live="polite">
+        <span class="vital-min">00</span><span class="vital-colon">:</span><span class="vital-sec">00</span>
+      </span>
+      <span class="panel-vital-meta">
+        <span><span class="pulse"></span><span id="panel-vital-status">SYNCED</span></span>
+        <span>WATCHING WITH ECG</span>
+      </span>
+    </div>
     <div class="panel-header">
       <div class="panel-tabs" role="tablist">
-        <button class="panel-tab is-active" data-mode="follow" role="tab">跟随</button>
-        <button class="panel-tab" data-mode="browse" role="tab">浏览</button>
+        <button class="panel-tab is-active" data-mode="follow" role="tab">▶ 跟随</button>
+        <button class="panel-tab" data-mode="browse" role="tab">⌕ 检索</button>
       </div>
-      <span class="panel-hint-mini" id="panel-hint-mini">心电图同步</span>
+      <span class="panel-hint-mini" id="panel-hint-mini">点 ECG 跳转</span>
     </div>
     <input type="text" id="panel-search" class="panel-search"
-           placeholder="搜索弹幕..." hidden>
+           placeholder="搜索弹幕关键词…" hidden>
     <div class="panel-viewport" id="panel-viewport">
       <div class="panel-padtop" id="panel-padtop"></div>
       <div class="panel-rows" id="panel-rows"></div>
@@ -977,14 +993,14 @@ function renderPanelShell(root) {
     </div>
     <button class="panel-return" id="panel-return" hidden>↓ 回到当前</button>
     <div class="panel-footer" id="panel-footer">
-      <span id="panel-footer-count"></span>
+      <span id="panel-footer-count">—</span>
       <span id="panel-footer-time">—</span>
     </div>
   `;
 }
 
-const PANEL_ROW_HEIGHT = 30;
-const PANEL_BUFFER_ROWS = 6;
+const PANEL_ROW_HEIGHT = 26;
+const PANEL_BUFFER_ROWS = 8;
 const SPARSE_THRESHOLD = 20;
 
 function scrollToCenter(t) {
@@ -1023,6 +1039,27 @@ function updateCurrentHighlight() {
     if (dt < 1) el.classList.add('is-current');
     else if (dt >= 18 && dt < 20) el.classList.add('is-edge');
   });
+  updateVitalTime(t);
+}
+
+// v0.4.3: vital cursor time code at top of panel (mm:ss with blinking colon).
+// Called whenever PanelStore.currentTime moves (ECG hover, click, panel
+// scroll, video tick). Also updates the small status word.
+function updateVitalTime(sec, status) {
+  const el = document.getElementById('panel-vital-time');
+  if (el) {
+    const total = Math.max(0, Math.floor(sec || 0));
+    const mm = String(Math.floor(total / 60)).padStart(2, '0');
+    const ss = String(total % 60).padStart(2, '0');
+    const minEl = el.querySelector('.vital-min');
+    const secEl = el.querySelector('.vital-sec');
+    if (minEl) minEl.textContent = mm;
+    if (secEl) secEl.textContent = ss;
+  }
+  if (status !== undefined) {
+    const s = document.getElementById('panel-vital-status');
+    if (s) s.textContent = status;
+  }
 }
 
 function renderPanelList() {
@@ -1265,7 +1302,16 @@ function wirePanelEvents() {
       PanelStore.currentTime = t;
       scrollToCenter(t);
       updateCurrentHighlight();
+      updateVitalTime(t, '预览中');
     });
+  } else if (!isIframeMode) {
+    // Local-video mode: hide the "use ECG" ribbon hint, the native
+    // <video> timeupdate already drives the panel.
+    const ribbon = document.getElementById('video-col-hint');
+    if (ribbon) ribbon.style.display = 'none';
+    updateVitalTime(0, 'LIVE');
+  } else {
+    updateVitalTime(0, '待同步');
   }
 }
 
