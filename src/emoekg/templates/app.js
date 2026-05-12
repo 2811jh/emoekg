@@ -942,13 +942,13 @@ function mountPanel() {
     renderPanelShell(root);
     renderPanelList();
     wirePanelEvents();
+    syncPanelHeight();          // v0.4.2: lock panel height to video height
+    bindBilibiliPostMessage();  // v0.4.2: try to follow iframe player progress
 
     // SPARSE-sample affordance: tell the researcher follow is effectively disabled
     if (PanelStore.allDanmaku.length < SPARSE_THRESHOLD) {
-      const subtitle = document.getElementById('panel-subtitle');
-      if (subtitle) {
-        subtitle.textContent = `样本较少（${PanelStore.allDanmaku.length} 条）· 全部显示`;
-      }
+      const hint = document.getElementById('panel-hint-mini');
+      if (hint) hint.textContent = `仅 ${PanelStore.allDanmaku.length} 条`;
     }
 
     console.log(`[Panel] mounted with ${PanelStore.allDanmaku.length} danmakus, ${PanelStore.tpByDmIdx.size} ▲ rows`);
@@ -966,10 +966,10 @@ function renderPanelShell(root) {
         <button class="panel-tab is-active" data-mode="follow" role="tab">跟随</button>
         <button class="panel-tab" data-mode="browse" role="tab">浏览</button>
       </div>
-      <div class="panel-subtitle" id="panel-subtitle">跟随视频播放 / 点击心电图同步</div>
-      <input type="text" id="panel-search" class="panel-search"
-             placeholder="搜索弹幕..." hidden>
+      <span class="panel-hint-mini" id="panel-hint-mini">心电图同步</span>
     </div>
+    <input type="text" id="panel-search" class="panel-search"
+           placeholder="搜索弹幕..." hidden>
     <div class="panel-viewport" id="panel-viewport">
       <div class="panel-padtop" id="panel-padtop"></div>
       <div class="panel-rows" id="panel-rows"></div>
@@ -983,8 +983,8 @@ function renderPanelShell(root) {
   `;
 }
 
-const PANEL_ROW_HEIGHT = 44;
-const PANEL_BUFFER_ROWS = 5;
+const PANEL_ROW_HEIGHT = 30;
+const PANEL_BUFFER_ROWS = 6;
 const SPARSE_THRESHOLD = 20;
 
 function scrollToCenter(t) {
@@ -1171,7 +1171,7 @@ function wirePanelEvents() {
 
   // --- tab switching ---
   const tabs = document.querySelectorAll('#panel-root .panel-tab');
-  const subtitle = document.getElementById('panel-subtitle');
+  const hint = document.getElementById('panel-hint-mini');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const mode = tab.dataset.mode;
@@ -1183,11 +1183,9 @@ function wirePanelEvents() {
       const searchEl = document.getElementById('panel-search');
       if (searchEl) searchEl.hidden = (mode !== 'browse');
 
-      // Update subtitle
-      if (subtitle) {
-        subtitle.textContent = mode === 'follow'
-          ? '跟随视频播放 / 点击心电图同步'
-          : '全量弹幕 · 关键词检索';
+      // Update mini hint
+      if (hint) {
+        hint.textContent = mode === 'follow' ? '心电图同步' : '关键词检索';
       }
 
       // Re-render and reposition
@@ -1268,9 +1266,6 @@ function wirePanelEvents() {
       scrollToCenter(t);
       updateCurrentHighlight();
     });
-
-    // Update subtitle to reflect iframe-mode behavior (canvas interactivity only)
-    if (subtitle) subtitle.textContent = '点击或悬停心电图同步';
   }
 }
 
@@ -1280,6 +1275,68 @@ function scrollToNearest(t) {
   if (!viewport || rows.length === 0) return;
   const idx = findRowIdxAt(rows, t);
   viewport.scrollTop = Math.max(0, (idx * PANEL_ROW_HEIGHT) - 100);
+}
+
+// ---------- v0.4.2: panel height sync (no overshoot below video) ----------
+// Without this, the danmaku panel grows to its intrinsic height and pushes
+// the layout way past the video bottom. Lock panel height to whatever
+// video-wrapper currently renders at (responsive, aspect-ratio driven).
+function syncPanelHeight() {
+  const wrapper = document.getElementById('video-wrapper');
+  const panel = document.getElementById('panel-root');
+  if (!wrapper || !panel) return;
+
+  const apply = () => {
+    const r = wrapper.getBoundingClientRect();
+    if (r.height > 100) {
+      panel.style.height = Math.round(r.height) + 'px';
+    }
+  };
+  apply();
+  window.addEventListener('load', apply);
+  window.addEventListener('resize', apply);
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(apply);
+    ro.observe(wrapper);
+  }
+}
+
+// ---------- v0.4.2: best-effort bilibili iframe player progress listener ---
+// Bilibili's official player iframe is cross-origin, so we cannot read
+// `currentTime` directly. But the player does emit some `postMessage` events.
+// We listen for any message originating from a bilibili origin and try to
+// recover a `currentTime` (in seconds) under several known field names.
+// If we get nothing, this is a no-op and we still rely on ECG hover/click.
+function bindBilibiliPostMessage() {
+  if (CONFIG.video_mode === 'local') return;  // local <video> already syncs
+  window.addEventListener('message', ev => {
+    try {
+      if (!ev.origin || !/(^|\.)bilibili\.com$/.test(new URL(ev.origin).hostname)) return;
+      const d = ev.data;
+      if (!d) return;
+      let t = null;
+      if (typeof d === 'object') {
+        if (typeof d.currentTime === 'number') t = d.currentTime;
+        else if (typeof d.time === 'number') t = d.time;
+        else if (typeof d.value === 'number' && d.event && /time|progress|play/i.test(d.event)) t = d.value;
+        else if (d.data && typeof d.data === 'object') {
+          if (typeof d.data.currentTime === 'number') t = d.data.currentTime;
+          else if (typeof d.data.time === 'number') t = d.data.time;
+        }
+      } else if (typeof d === 'string') {
+        // Some versions send `__playertime__:123.45`-style payloads.
+        const m = d.match(/(?:time|progress)\D+(\d+(?:\.\d+)?)/i);
+        if (m) t = parseFloat(m[1]);
+      }
+      if (t !== null && Number.isFinite(t) && t >= 0) {
+        // Heuristic: bilibili sometimes ships ms instead of seconds.
+        if (t > (META.duration_sec || 0) * 5 && META.duration_sec) t = t / 1000;
+        PanelStore.currentTime = t;
+        scrollToCenter(t);
+        updateCurrentHighlight();
+      }
+    } catch { /* swallow */ }
+  });
 }
 
 // ---------- bootstrap ----------

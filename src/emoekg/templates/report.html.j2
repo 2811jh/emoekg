@@ -598,27 +598,28 @@ section.zone::after {
   width: 100%;
   overflow: hidden;
 }
-/* --- §02 Media Row: video on left, DanmakuPanel on right (v0.4.1) ------ */
-/* ECG 方格纸图保持全宽独立放在下方，不被这个 row 影响 ------ */
+/* --- §02 Media Row: video on left, DanmakuPanel on right (v0.4.2) ------ */
+/* Grid + JS height sync: panel height locks to video-wrapper height so the
+   弹幕面板 doesn't push past the video bottom edge. ECG paper grid below
+   remains full-width and unaffected by this row. */
 .media-row {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
   margin-top: 8px;
   margin-bottom: 28px;
 }
 .video-col {
-  flex: 0 0 calc(65% - 10px);
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
 .danmaku-panel {
-  flex: 1 1 0;
-  min-width: 320px;
-  max-width: 440px;
-  min-height: 0;  /* allow flex child to shrink (panel-viewport overflow to work) */
+  min-width: 280px;
+  max-width: 100%;
+  height: 360px;  /* fallback before JS height-sync kicks in */
+  min-height: 0;
   background-color: var(--n-1);
   border: 1px solid var(--n-4);
   border-radius: 4px;
@@ -648,22 +649,26 @@ section.zone::after {
   margin: 0 auto;
 }
 .panel-header {
-  padding: 14px 16px 10px;
+  padding: 8px 12px 6px;
   border-bottom: 1px solid var(--n-4);
   background-color: var(--n-1);
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .panel-tabs {
   display: flex;
-  gap: 18px;
+  gap: 14px;
 }
 .panel-tab {
   background: none;
   border: none;
-  padding: 4px 0 8px;
+  padding: 2px 0 6px;
   font-family: var(--ff-mono);
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--n-6);
   cursor: pointer;
@@ -672,23 +677,24 @@ section.zone::after {
 }
 .panel-tab:hover { color: var(--n-8); }
 .panel-tab.is-active { color: var(--acc); border-bottom-color: var(--acc); }
-.panel-subtitle {
-  margin-top: 6px;
+.panel-hint-mini {
   font-family: var(--ff-sans);
-  font-size: var(--fs-micro);
+  font-size: 10px;
   color: var(--n-6);
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .panel-search {
-  margin-top: 10px;
-  width: 100%;
-  padding: 6px 10px;
+  margin: 6px 12px 4px;
+  width: calc(100% - 24px);
+  padding: 4px 8px;
   background-color: var(--n-0);
   border: 1px solid var(--n-4);
   border-radius: 3px;
   color: var(--n-8);
   font-family: var(--ff-sans);
-  font-size: 13px;
+  font-size: 12px;
   outline: none;
   transition: border-color 120ms;
   box-sizing: border-box;
@@ -707,8 +713,8 @@ section.zone::after {
 .panel-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 10px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--n-3);
   cursor: pointer;
   transition: background-color 120ms;
@@ -719,23 +725,23 @@ section.zone::after {
 .panel-row.is-current {
   background-color: rgba(235, 94, 40, 0.10);
   border-left: 3px solid var(--acc);
-  padding-left: 13px;  /* compensate for border to keep content aligned */
+  padding-left: 9px;  /* compensate for border to keep content aligned */
   font-weight: 600;
 }
 .panel-row.is-edge {
   opacity: 0.4;
 }
 .panel-row-time {
-  flex: 0 0 44px;
+  flex: 0 0 38px;
   font-family: var(--ff-mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--n-6);
   letter-spacing: 0.04em;
 }
 .panel-row-text {
   flex: 1 1 0;
   font-family: var(--ff-sans);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--n-8);
   white-space: nowrap;
   overflow: hidden;
@@ -766,7 +772,7 @@ section.zone::after {
   flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 5px 12px;
   border-top: 1px solid var(--n-4);
   background-color: var(--n-1);
   font-family: var(--ff-mono);
@@ -776,9 +782,9 @@ section.zone::after {
 }
 .panel-return {
   position: absolute;
-  right: 16px;
-  bottom: 56px;
-  padding: 6px 12px;
+  right: 12px;
+  bottom: 36px;
+  padding: 5px 10px;
   background-color: var(--acc);
   color: var(--n-9);
   border: none;
@@ -791,9 +797,8 @@ section.zone::after {
   z-index: 5;
 }
 @media (max-width: 1279px) {
-  .media-row { flex-direction: column; }
-  .video-col { flex: 1 1 auto; }
-  .danmaku-panel { max-width: 100%; height: 380px; min-height: 0; }
+  .media-row { grid-template-columns: 1fr; }
+  .danmaku-panel { max-width: 100%; height: 320px; min-height: 0; }
 }
 @media (max-width: 767px) {
   .danmaku-panel { display: none; }
@@ -1598,7 +1603,7 @@ section.zone::after {
         <span class="freq">Lead I · Source Video</span>
       </span>
     </span>
-    <span class="hint">点击下方心电图任意位置可同步跳转视频时刻</span>
+    <span class="hint">心电图 = 视频进度条 · 点击/悬停同步弹幕面板</span>
   </div>
   <div class="media-row">
     <div class="video-col">
