@@ -544,12 +544,24 @@ section.zone::after {
   font-size: 10.5px;
   color: var(--n-6);
   letter-spacing: 0.08em;
-  max-width: 56ch;
   text-align: right;
   line-height: 1.5;
+  white-space: nowrap;  /* keep all clauses on one line */
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
 }
 .monitor-head .hint b { color: var(--n-8); font-weight: 500; }
 .monitor-head .hint .sep { color: var(--n-4); margin: 0 6px; }
+.monitor-head .hint .arrow {
+  color: var(--acc);
+  font-size: 11px;
+  display: inline-block;
+  animation: hint-pulse 2.4s ease-in-out infinite;
+}
+@media (max-width: 1024px) {
+  .monitor-head .hint { white-space: normal; max-width: 60ch; }
+}
 
 /* --- LIVE TRACE indicator (pulse dot + label) ----------------------------- */
 .live-trace {
@@ -1789,7 +1801,7 @@ section.zone::after {
         <span class="freq">Lead I · Source Video</span>
       </span>
     </span>
-    <span class="hint">→ 右侧仪表<span class="sep">·</span>当前 8 维实时读数</span>
+    <span class="hint"><span class="arrow">→</span> <b>右侧仪表</b><span class="sep">·</span>当前 8 维实时读数</span>
   </div>
   <div class="media-row">
     <div class="video-col">
