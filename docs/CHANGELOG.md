@@ -1,13 +1,21 @@
 # Changelog
 
 按 [Semver](https://semver.org/) 维护，记录每个版本的关键变更。
-当前版本：**v0.4.8**（current）。
+当前版本：**v0.4.9**（current）。
 
 ---
 
 ## v0.4.x — Cockpit Console（2026-05-11 系列）
 
 > **主题**：将报告 §02 模块从「视频 + 弹幕滚动列表」重构为「视频 + 8 维 Vital Readout 仪表盘」，建立"驾驶舱 / 监护仪"语义体系。详细设计见 [`2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md#15-v04x-实施回顾--cockpit-console2026-05-11)。
+
+### v0.4.9 — 默认桌面输出 + 友好命名（SKILL 层规则）
+- **feat (SKILL)**: Step 1 — 默认输出位置 = 用户桌面（Windows: `%USERPROFILE%\Desktop`、macOS/Linux: `~/Desktop`），用户没显式指定时不再追问"放哪里"
+- **feat (SKILL)**: 新增 Step 6「友好命名 + 桌面投放」——CLI 产出 `emoekg_report.html` 后，必须复制一份到桌面根目录重命名为 `AI情绪心电图-<视频关键字>.html`
+- **feat (SKILL)**: 关键字提取规则 6 条 + 重名 `_2`/`_3` 处理 + 跨平台命令模板（cmd / bash / Python）
+- **feat (SKILL)**: Step 5 自检清单加 2 条桌面投放校验；Common Mistakes 加 3 条新陷阱
+- **change (README)**: 数据产物布局图分两块（working dir + 桌面友好名）；触发示例增加默认桌面提示
+- **rationale**: 终端用户看不到 `emoekg_report.html` 这种英文名；研究员希望产物像「截图 / 论文 PDF」一样直接落桌面，不需要进 working dir 翻
 
 ### v0.4.8 — 横屏对齐修复 + GitHub 同步
 - **fix**: 横屏浏览器下 `vital-stats-grid` 6 卡基线不齐 — 用 `grid-template-rows: 18px 38px ...` 显式锁定行高

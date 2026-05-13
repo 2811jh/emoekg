@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.8-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.9-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -105,6 +105,10 @@ Agent 会自动：
 2. 读 `chunks.md` → 按 rubric 在对话里给每个 chunk 打 8 维 0–10 分
 3. 写 `scores.json` + `insights.json`
 4. 调 `emoekg finalize` → 生成 `emoekg_report.html`
+5. 把 HTML 复制一份到 **桌面**，重命名为 `AI情绪心电图-<视频关键字>.html`，双击即可打开
+
+> 💡 **默认输出位置**：用户桌面（Windows: `%USERPROFILE%\Desktop`、macOS/Linux: `~/Desktop`）。
+> 如果你想改，告诉 Agent 「报告放在 `D:\reports\` 里」之类的明确路径即可。
 
 ### 方式 B：CLI 手动跑（你负责打分）
 
@@ -163,15 +167,19 @@ emoekg finalize              -o my_report/      # Stage 4 + 5
 每次分析会在输出目录下生成 7 个文件，中间态全部落盘支持断点续跑：
 
 ```
-my_report/
+my_report/                              ← 默认放桌面（除非你显式 -o）
 ├── meta.json              视频元信息（BV、时长、UP 主、弹幕总数）
 ├── danmaku.json           全量历史弹幕（time / text / color / mode）
 ├── chunks.md              分块的 Markdown，Agent 在这里打分
 ├── scores.json            8 维 0–10 分打分结果（Agent 产出）
 ├── insights.json          TL;DR + 3 条洞察（Agent 产出）
 ├── turnpoints.json        合并后的转折点 + 佐证弹幕
-└── emoekg_report.html     单文件离线交互报告（~1 MB）
+└── emoekg_report.html     单文件离线交互报告（~1 MB，原始名）
+
+<DESKTOP>/AI情绪心电图-<视频关键字>.html  ← 友好命名副本，双击即开
 ```
+
+> 友好命名副本由 Agent 在 Step 6 生成，规则：从 `meta.title` 提取 4–14 字关键短语，去除装饰符号 / 标题党词 / Windows 非法字符。例：「万字攻略 一口气玩会亡者世界」→ `AI情绪心电图-亡者世界万字攻略.html`。
 
 ### scores.json 字段
 
@@ -393,7 +401,7 @@ python -m pytest
 | **v0.1.1** | Swiss × Editorial UI + Insights Protocol + 真实数据验证 | ✅ 已发布 |
 | **v0.2.x** | `--with-video` 本地视频模式 + iframe 双向同步尝试 | ✅ 已发布 |
 | **v0.3.x** | Vital Console 第一版 + 弹幕侧栏 + 8 维仪表读数 | ✅ 已发布 |
-| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） | ✅ 已发布（current = 0.4.8）|
+| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 友好命名 | ✅ 已发布（current = 0.4.9）|
 | v0.5.0 | 多视频对比（同一 UP / 同系列横向对照仪表盘） | 计划中 |
 | v0.5.0 | 导出情绪摘要 CSV / Markdown 表格，便于研究报告复用 | 计划中 |
 | v0.6.0 | 抖音 / YouTube 数据源适配（保持同 SKILL 接口） | 探索中 |

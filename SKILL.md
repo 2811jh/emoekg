@@ -80,16 +80,27 @@ S1+S2 和 S4+S5 是两个子进程调用；**Stage 3 夹在中间**，由你在�
 
 ### 执行步骤
 
-**Step 1 — 确认输入**
+**Step 1 — 确认输入 + 解析输出位置**
 
 向用户确认：
 - B 站视频 URL / BV 号（必需）
 - 是否需要 `--with-video` 模式（可选，需本地 MP4，触发时告诉用户要先用 `yutto` 或其他工具下载视频到 `video.mp4`）
+- **输出位置**（重要）：
+  - **默认 = 用户桌面**（Windows: `%USERPROFILE%\Desktop`、macOS/Linux: `~/Desktop`）
+  - 仅当用户**显式指定** `-o`、`--output`、"放到 xxx 目录"、"输出到 yyy/" 等表达时，才用用户给的路径
+  - 用户没说时不要追问"放哪里"——默认桌面即可，省掉一轮交互
 
 **Step 2 — 准备数据**
 
 ```bash
-emoekg prepare <url_or_bvid> -o emoekg_<BV>_<YYYYMMDD>/
+# 默认（推荐）：放桌面，working dir 命名 emoekg_<BV>_<YYYYMMDD>
+emoekg prepare <url_or_bvid> -o <DESKTOP>/emoekg_<BV>_<YYYYMMDD>/
+
+# Windows 实例
+emoekg prepare BV18acMz4ELL -o %USERPROFILE%/Desktop/emoekg_BV18acMz4ELL_20260513/
+
+# macOS / Linux 实例
+emoekg prepare BV18acMz4ELL -o ~/Desktop/emoekg_BV18acMz4ELL_20260513/
 ```
 
 CLI 会：
@@ -98,6 +109,10 @@ CLI 会：
 - 写入空骨架 `scores.json`（`[]`）
 
 完成后 CLI 会提示 `Waiting for Agent scoring`。
+
+> **注意 — 文件名约定的两层含义**：
+> - `working dir` 仍叫 `emoekg_<BV>_<YYYYMMDD>/` ——保持目录可识别 + 多次跑同视频不冲突
+> - 最终交付给用户的 HTML **会另存一份友好名**，见 Step 6
 
 **Step 3 — Agent 打分 + 写洞察（你在对话里直接做）**
 
@@ -127,16 +142,16 @@ CLI 会：
 **Step 4 — 渲染报告**
 
 ```bash
-emoekg finalize -o emoekg_<BV>_<YYYYMMDD>/
+emoekg finalize -o <DESKTOP>/emoekg_<BV>_<YYYYMMDD>/
 ```
 
 或者如果用户要本地视频双向同步：
 
 ```bash
-emoekg finalize -o emoekg_<BV>_<YYYYMMDD>/ --with-video
+emoekg finalize -o <DESKTOP>/emoekg_<BV>_<YYYYMMDD>/ --with-video
 ```
 
-产出 `emoekg_report.html`（~1 MB，自带 ECharts，可完全离线打开）。
+产出 `<working_dir>/emoekg_report.html`（~1 MB，自带 ECharts，可完全离线打开）。
 
 **Step 5 — 质量自检**
 
@@ -148,6 +163,49 @@ emoekg finalize -o emoekg_<BV>_<YYYYMMDD>/ --with-video
 - [ ] HTML 打开后图表非空、至少能看到一条情绪曲线
 - [ ] HTML Hero 区 TL;DR 和 Insights 能正常显示
 - [ ] 非 SPARSE chunk 不要全 0（警示线：见 S4 `WARN` 输出）
+- [ ] **Step 6 已执行**：桌面有 `AI情绪心电图-<关键字>.html`，能直接双击打开
+- [ ] **告知用户的路径**是桌面上的友好名 HTML，不是 working dir 里的 `emoekg_report.html`
+
+**Step 6 — 友好命名 + 桌面投放（必做，v0.4.9+）**
+
+CLI 产出的 `emoekg_report.html` 文件名对终端用户不友好。**你必须**额外把这份 HTML 复制 / 重命名一份放到桌面根目录，命名规则如下：
+
+```
+AI情绪心电图-<视频关键字>.html
+```
+
+**关键字提取规则**：
+1. 从 `meta.json` 的 `title` 字段读视频标题
+2. 去掉装饰性符号：`【】《》「」()[]『』""''!?！？` 全角半角都去
+3. 去掉广告 / 标题党词：`最新`、`必看`、`重磅`、`官方`、`独家`、`完整版`、`超清`、`高清`、`4K` 等
+4. 提取 4–14 个汉字 / 数字 / 字母的核心短语，删除空格和分隔符
+5. 总文件名长度 ≤ 60 字符（含 `AI情绪心电图-` 前缀和 `.html` 后缀）；过长则截断到尾部
+6. 替换 Windows 非法字符 `< > : " / \ | ? *` 为空字符串
+
+**示例**：
+
+| `meta.title` | 关键字 | 最终文件名 |
+|---|---|---|
+| 「躁动的地平线 RLcraft现代版本 MC生存试玩」 | `RLcraft现代MC试玩` | `AI情绪心电图-RLcraft现代MC试玩.html` |
+| 「万字攻略 一口气玩会亡者世界！惊变末日搜打撤 网易必玩神作」 | `亡者世界万字攻略` | `AI情绪心电图-亡者世界万字攻略.html` |
+| 「【官方】《王者荣耀》新英雄 露娜技能解读 4K超清」 | `王者荣耀露娜技能解读` | `AI情绪心电图-王者荣耀露娜技能解读.html` |
+
+**操作方式**（任选其一，**优先用 Python 单行命令**避免编码问题）：
+
+```bash
+# Windows（cmd / PowerShell 都可，注意中文路径加引号）
+copy "<working_dir>\emoekg_report.html" "%USERPROFILE%\Desktop\AI情绪心电图-<关键字>.html"
+
+# macOS / Linux
+cp "<working_dir>/emoekg_report.html" "$HOME/Desktop/AI情绪心电图-<关键字>.html"
+
+# 跨平台（Python，最稳——推荐）
+python -c "import shutil, pathlib, os; src=pathlib.Path(r'<working_dir>/emoekg_report.html'); dst=pathlib.Path(os.path.expanduser('~/Desktop'))/'AI情绪心电图-<关键字>.html'; shutil.copy2(src, dst); print(dst)"
+```
+
+**重名处理**：桌面已存在同名 HTML 时，文件名追加 `_2`、`_3` 后缀，**不要覆盖**用户上次跑出来的报告。
+
+**最终告知用户**时，明确给出桌面 HTML 的绝对路径和友好名（例如「报告已生成：`C:\Users\xxx\Desktop\AI情绪心电图-亡者世界万字攻略.html`，双击即可打开」），**不要只**给 working dir。
 
 ## Quick Reference
 
@@ -162,18 +220,31 @@ emoekg finalize -o emoekg_<BV>_<YYYYMMDD>/ --with-video
 | `emoekg <任意命令> --force` | 忽略已存在的中间产物重跑 |
 | `emoekg --version` | 打印版本 |
 
+### 输出位置 & 命名规范（v0.4.9+）
+
+| 角色 | 默认位置 | 命名规则 | 备注 |
+|---|---|---|---|
+| **Working dir**（中间产物 + 原始 HTML） | `<DESKTOP>/emoekg_<BV>_<YYYYMMDD>/` | `emoekg_<BV号>_<日期>` | 用户传 `-o` 时尊重用户路径；不传时一律放桌面 |
+| **交付 HTML**（终端用户看的） | `<DESKTOP>/AI情绪心电图-<关键字>.html` | `AI情绪心电图-<视频关键字>` | Step 6 强制生成；与 working dir 内的 `emoekg_report.html` 同源 |
+
+**判断"用户是否指定了输出位置"**：
+- 触发用户指定模式的表达：`-o`、`--output`、`放到 X`、`输出到 X`、`存到 X`、`保存到 X`、`报告放 X`
+- 没说就**默认桌面**——不要追问
+
 ### 输出目录结构
 
 ```
-emoekg_BV1xxxxxx_20260507/
-├── meta.json               # S1 输出
-├── danmaku.json            # S1 输出（可能 1–50 MB）
-├── chunks.md               # S2 输出 — Agent prompt
-├── scores.json             # S2 空骨架 → S3 你填（8 维分 + note）
-├── insights.json           # S3 你写（summary + 3 insights）
-├── turnpoints.json         # S4 输出
-├── emoekg_report.html      # S5 输出 — 最终交付
-└── (可选) video.mp4         # --with-video 模式用
+<DESKTOP>/
+├── emoekg_BV1xxxxxx_20260507/      # working dir（中间产物 + 原始 HTML）
+│   ├── meta.json                   #   S1 输出
+│   ├── danmaku.json                #   S1 输出（可能 1–50 MB）
+│   ├── chunks.md                   #   S2 输出 — Agent prompt
+│   ├── scores.json                 #   S2 空骨架 → S3 你填（8 维分 + note）
+│   ├── insights.json               #   S3 你写（summary + 3 insights）
+│   ├── turnpoints.json             #   S4 输出
+│   ├── emoekg_report.html          #   S5 输出（原始名）
+│   └── (可选) video.mp4             #   --with-video 模式用
+└── AI情绪心电图-<视频关键字>.html    # Step 6 投放（终端用户双击即开）
 ```
 
 ### 打分小抄（0/3/6/9 四锚点）
@@ -199,6 +270,10 @@ emoekg_BV1xxxxxx_20260507/
 | **误判情绪方向** | `笑死` 在嘲讽语境是 anger/disgust，不是 joy；读上下文 |
 | **自己写 Python 算分** | 别。rubric 的重点就是**你自己理解弹幕**，算法层会毁掉这件事的价值 |
 | **把全部弹幕抄回 scores.json** | 不用。只打 8 维分 + note |
+| **追问"放哪里？"** | 不要。默认桌面；除非用户说 `-o XXX` 之类显式路径 |
+| **跳过 Step 6 直接交付 working dir 路径** | 终端用户不会打开 `emoekg_report.html` 这种英文名；必须复制一份成 `AI情绪心电图-<关键字>.html` 放桌面 |
+| **把视频原标题直接当文件名** | 标题里有 `《》【】！？` 之类符号，Windows 写不进；按 Step 6 关键字提取规则做净化 |
+| **覆盖用户上次跑出来的报告** | 桌面同名 HTML 已存在时加 `_2`/`_3`，不要 overwrite |
 
 ## Red Flags — STOP and Reconsider
 
