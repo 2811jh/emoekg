@@ -1,13 +1,19 @@
 # Changelog
 
 按 [Semver](https://semver.org/) 维护，记录每个版本的关键变更。
-当前版本：**v0.4.11**（current）。
+当前版本：**v0.4.12**（current）。
 
 ---
 
 ## v0.4.x — Cockpit Console（2026-05-11 系列）
 
 > **主题**：将报告 §02 模块从「视频 + 弹幕滚动列表」重构为「视频 + 8 维 Vital Readout 仪表盘」，建立"驾驶舱 / 监护仪"语义体系。详细设计见 [`2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md#15-v04x-实施回顾--cockpit-console2026-05-11)。
+
+### v0.4.12 — 删除冗余 `requirements.txt`
+- **chore**: `requirements.txt` 内容与 `pyproject.toml` 的 `dependencies = [...]` 完全一致（4 行对 4 行），保留两份会产生 "谁是 source of truth" 的歧义；删除以遵循现代 Python 包工程标准（pyproject.toml 单一来源）
+- **docs**: README 项目结构树 + SKILL Files 列表去除该文件引用，并补一句 "single source of truth" 说明
+- **不影响安装**: README 推荐的 `pip install -e .` 走 pyproject.toml，不依赖 requirements.txt；唯一受影响的是历史上通过 `pip install -r requirements.txt` 装的脚本（如有）需要切到 `pip install -e .` 或 `pip install .`
+- **历史档案**: `docs/2026-05-07-emoekg-design.md` 与 `docs/2026-05-07-emoekg-plan.md` 内的 `requirements.txt` 引用**保留不动**——这两份是 v0.1.0 时刻的设计快照，不回溯修订
 
 ### v0.4.11 — 仓库结构整理（标准范式）
 - **chore**: 清理仓库根目录碎屑——删除 `-p/`（mkdir 误用产物）、`build/`、`.pytest_cache/`、`.superpowers/`（已 ignored，但本地碎屑未清）

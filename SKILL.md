@@ -336,7 +336,7 @@ cp "$HOME/Desktop/AI情绪心电图-<关键字>/emoekg_report.html" "$HOME/Deskt
 - `src/emoekg/_lib/` — 底层算法（窗口、峰值、JS 散度、佐证采样）
 - `src/emoekg/templates/` — HTML 模板 + 内联 ECharts + `app.js`
 - `tests/` — 194 个单测（`pytest` 跑通）
-- `requirements.txt` — Python 依赖
+- `pyproject.toml` — 安装配置 + 依赖声明（single source of truth，无 `requirements.txt`）
 
 ## Installation
 

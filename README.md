@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.11-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.12-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -273,8 +273,7 @@ emoekg/
 ├── SKILL.md                          # ★ Agent 契约（工作流 + Stage 3 产出要求 + Step 6 桌面投放）
 ├── README.md                         # ★ 给用户看的（安装 + 演示 + 截图）
 ├── LICENSE                           # MIT
-├── pyproject.toml                    # 安装配置 + 依赖声明 + CLI entry point
-├── requirements.txt                  # 兼容旧 pip 流程的依赖镜像
+├── pyproject.toml                    # 安装配置 + 依赖声明 + CLI entry point（single source of truth）
 ├── .gitignore
 │
 ├── docs/                             # 设计 + 历史
@@ -430,7 +429,7 @@ python -m pytest
 | **v0.1.1** | Swiss × Editorial UI + Insights Protocol + 真实数据验证 | ✅ 已发布 |
 | **v0.2.x** | `--with-video` 本地视频模式 + iframe 双向同步尝试 | ✅ 已发布 |
 | **v0.3.x** | Vital Console 第一版 + 弹幕侧栏 + 8 维仪表读数 | ✅ 已发布 |
-| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构整理 | ✅ 已发布（current = 0.4.11）|
+| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构标准化 | ✅ 已发布（current = 0.4.12）|
 | v0.5.0 | 多视频对比（同一 UP / 同系列横向对照仪表盘） | 计划中 |
 | v0.5.0 | 导出情绪摘要 CSV / Markdown 表格，便于研究报告复用 | 计划中 |
 | v0.6.0 | 抖音 / YouTube 数据源适配（保持同 SKILL 接口） | 探索中 |
