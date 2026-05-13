@@ -1162,7 +1162,8 @@ function renderVitalStats() {
 
   grid.innerHTML = `
     <article class="vs-card vs-hero">
-      <span class="vs-label">主导情绪 / DOMINANT
+      <span class="vs-label">
+        <span class="vs-label-text"><b>DOMINANT</b> 主导</span>
         <span class="vs-corner">${domDef.en}</span>
       </span>
       <span class="vs-num"><b>${domDef.zh}</b></span>
@@ -1170,7 +1171,8 @@ function renderVitalStats() {
       <div class="vs-spark">${domSpark}</div>
     </article>
     <article class="vs-card">
-      <span class="vs-label">弹幕总量 / DANMAKU
+      <span class="vs-label">
+        <span class="vs-label-text"><b>DANMAKU</b> 弹幕</span>
         <span class="vs-corner">${dur ? Math.round(total / dur * 60) : 0}/min</span>
       </span>
       <span class="vs-num">${total.toLocaleString()}<span class="unit">条</span></span>
@@ -1178,29 +1180,33 @@ function renderVitalStats() {
       <div class="vs-spark">${dmSpark}</div>
     </article>
     <article class="vs-card">
-      <span class="vs-label">情绪转折 / TURNPOINTS
+      <span class="vs-label">
+        <span class="vs-label-text"><b>TURNPOINTS</b> 转折</span>
         <span class="vs-corner">N=${tps.length}</span>
       </span>
       <span class="vs-num">${tps.length}<span class="unit">个</span></span>
       <span class="vs-sub">峰 ${peaks.length} · 谷 ${valleys.length} · 反转 ${shifts.length}</span>
     </article>
     <article class="vs-card vs-clickable" ${topPeak ? `data-seek="${topPeak.time_start}"` : ''}>
-      <span class="vs-label">最强峰值 / PEAK
+      <span class="vs-label">
+        <span class="vs-label-text"><b>PEAK</b> 峰值</span>
         <span class="vs-corner">${topPeak ? topPeak.main_dimension.toUpperCase() : '—'}</span>
       </span>
       <span class="vs-num">${topPeak ? formatMMSS(topPeak.time_start) : '—'}</span>
       <span class="vs-sub">${topPeak ? '强度 ' + (topPeak.magnitude||0).toFixed(1) + ' · ' + escapeHtml((topPeak.description || '').slice(0, 24)) : '该视频无显著峰值'}</span>
     </article>
     <article class="vs-card vs-clickable" ${topVal ? `data-seek="${topVal.time_start}"` : ''}>
-      <span class="vs-label">最低谷值 / VALLEY
+      <span class="vs-label">
+        <span class="vs-label-text"><b>VALLEY</b> 谷值</span>
         <span class="vs-corner">${topVal ? topVal.main_dimension.toUpperCase() : '—'}</span>
       </span>
       <span class="vs-num">${topVal ? formatMMSS(topVal.time_start) : '—'}</span>
       <span class="vs-sub">${topVal ? '强度 ' + (topVal.magnitude||0).toFixed(1) + ' · ' + escapeHtml((topVal.description || '').slice(0, 24)) : '该视频无显著谷值'}</span>
     </article>
     <article class="vs-card">
-      <span class="vs-label">情绪极性 / POLARITY
-        <span class="vs-corner">-10..+10</span>
+      <span class="vs-label">
+        <span class="vs-label-text"><b>POLARITY</b> 极性</span>
+        <span class="vs-corner">±10</span>
       </span>
       <span class="vs-num ${polarity > 0 ? 'vs-pos' : (polarity < 0 ? 'vs-neg' : '')}">${polarityStr}</span>
       <span class="vs-sub">正向 − 负向 均值 · ${polarity > 0.5 ? '整体偏正' : polarity < -0.5 ? '整体偏负' : '中性平衡'}</span>

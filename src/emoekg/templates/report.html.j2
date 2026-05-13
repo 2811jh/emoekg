@@ -924,9 +924,10 @@ section.zone::after {
   border: 1px solid var(--n-4);
   border-radius: 3px;
   display: grid;
-  /* row 1: label  row 2: 主数字 (固定 38px, 内容贴底)  row 3: sub  row 4: spark/spacer */
-  grid-template-rows: auto 38px auto 1fr;
-  row-gap: 5px;
+  /* row 1: label (固定 18px, nowrap)  row 2: 主数字 (38px, 内容贴底)
+     row 3: sub  row 4: spark/spacer */
+  grid-template-rows: 18px 38px auto 1fr;
+  row-gap: 6px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -958,14 +959,32 @@ section.zone::after {
 .vs-label {
   font-family: var(--ff-mono);
   font-size: 9px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   color: var(--n-6);
   text-transform: uppercase;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  height: 18px;
+  line-height: 18px;
+}
+.vs-label-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vs-label-text b {
+  color: var(--n-7);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  margin-right: 4px;
 }
 .vs-label .vs-corner {
+  flex: 0 0 auto;
   font-family: var(--ff-mono);
   font-size: 8px;
   color: var(--n-5);
