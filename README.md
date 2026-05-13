@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-alpha-orange) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-190%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.8-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -66,17 +66,19 @@ pip install -e ".[video]"
 - **双算法转折检测** — scipy 峰值检测（PEAK / VALLEY）+ Jensen–Shannon 散度反转检测（SHIFT）
 - **单文件离线报告** — ~1 MB 的 HTML，ECharts 全部内联，双击即开
 
-### 🎨 Swiss × Editorial 研究档案风格
-- **12 列网格 + 系统字体** — 0 CDN 依赖，国内外加载都稳
-- **发光 ECG 曲线** — 8 条情绪时间线叠加，hover 聚焦单一维度
-- **Live Trace 脉冲指示** — 视频与心电图标题旁的呼吸红点，强化"监护仪"质感
-- **Executive Summary** — Hero 区 TL;DR + 三条研究洞察（节奏 / 机制 / 反差三视角）
+### 🎨 Cockpit Console — 监护仪式信息架构（v0.4.x）
+- **驾驶舱布局** — 视频 + ECG 心电图 + 8 维 Vital Readout 三联仪表盘，鼠标悬停 ECG 即时联动右侧仪表
+- **Live Trace 脉冲** — 视频与心电图标题旁的呼吸红点同步，强化"监护仪"质感
+- **Vital Stats 6 卡** — 总弹幕量 / 极性比 / 主导情绪 / 最炸时刻 / 最冷时刻 / 反转次数，一眼看完整片节奏
+- **数字钟体字体** — `tabular-nums` + 等宽 + slashed-zero，所有计数 / 时间码统一仪表读数风格
+- **跨域联动声明** — 不再假装能反向控制 B 站 iframe；UI 明示「ECG = Remote Control」，鼠标拖动 ECG 即时驱动整套仪表
 
 ### 🔍 可交互研究工作区
 - **点击心电图任意位置跳视频** — canvas 反算时间 → iframe `t` 参数 seek
+- **悬停心电图驱动右侧仪表** — 8 维分量条 + 主导情绪标签 + 邻域弹幕 trail 实时更新
 - **转折点卡片可折叠** — 前 3 条默认展开，点卡片展开/折叠，点时间跳视频
 - **佐证弹幕自动采样** — 每个 TP 附带 3–5 条按关键词 > 长度 > 时间排序的代表弹幕
-- **弹幕列表多维筛选** — 按 8 个情绪维度过滤 + 关键词搜索
+- **§05 弹幕全表搜索** — 按 8 个情绪维度过滤 + 关键词搜索，承担"翻全片找原话"职能
 
 ### 🤖 AI Agent 契约（SKILL.md）
 - **Stage 3 评分规则** — `docs/scoring_rubric.md` 定义 0–10 分刻度、SPARSE 处理、反讽判定
@@ -332,12 +334,13 @@ CLI / Stages（编排层）  ──依赖──→  _lib（纯业务逻辑）  �
 
 ## 🎨 报告设计语言
 
-- **主题**：Swiss × Editorial 暗色研究档案风（参考 Stripe Press / Pentagram）
-- **字体**：纯系统字体栈（Inter 族 + IBM Plex 族降级），零 CDN 依赖
-- **调色板**：11 阶中性灰 `#0a0a0b → #f4f4f6` + 单一强调色 `#EB5E28`
-- **版式**：12 列网格，ample negative space，超大字号对比（display 60px ↔ micro 10px）
-- **图表**：ECharts 5.5，自定义磷光发光（shadowBlur 2 / emphasis 8）
-- **动效**：Live Trace 呼吸圆点（1.6s 三段 keyframes）
+- **主题**：Swiss × Editorial 暗色研究档案 → v0.4.x 升级为 **Cockpit Console 监护仪式**
+- **字体**：纯系统字体栈（Inter 族 + IBM Plex 族降级 + `ui-monospace` 数字仪表），零 CDN 依赖
+- **数字字符**：`font-variant-numeric: tabular-nums slashed-zero`，确保 0 与 O 可辨、列宽对齐
+- **调色板**：11 阶中性灰 `#0a0a0b → #f4f4f6` + 单一强调色 `#EB5E28`（Accent Orange）
+- **版式**：12 列网格 + 显式 `grid-template-rows` 锁定基线，宽屏 / 窄屏均横向对齐
+- **图表**：ECharts 5.5，自定义磷光发光（shadowBlur 2 / emphasis 8），hover 聚焦单一维度
+- **动效**：Live Trace 呼吸圆点（1.6s 三段 keyframes）+ hint 箭头脉冲（`hint-pulse`）
 
 打印模式（`@media print`）自动翻转为浅色高对比版，可直接 PDF 导出做调研报告附录。
 
@@ -357,7 +360,7 @@ CLI / Stages（编排层）  ──依赖──→  _lib（纯业务逻辑）  �
 ```bash
 pip install pytest
 python -m pytest
-# 190 tests pass
+# 194 tests pass
 ```
 
 测试覆盖：BV 解析、时间格式化、自适应窗口、Plutchik schema 校验、弹幕 client 三类 bug 回归、峰值 / JS 散度算法、佐证采样、5 个 stage 集成、CLI subcommands。
@@ -384,12 +387,19 @@ python -m pytest
 
 ## 📝 路线图
 
-- [x] v0.1.0 — 核心流水线 + CLI + SKILL 契约
-- [x] v0.1.1 — Swiss × Editorial UI + Insights Protocol + 真实数据验证
-- [ ] v0.2.0 — 多视频对比（同一 UP / 同一系列横向分析）
-- [ ] v0.2.0 — 导出情绪摘要 CSV / Markdown 表格
-- [ ] v0.3.0 — yutto 集成完善，一键 `--with-video` 下载内嵌
-- [ ] v0.3.0 — 抖音 / YouTube 数据源适配（同 SKILL 接口）
+| 版本 | 主题 | 状态 |
+|---|---|---|
+| **v0.1.0** | 核心流水线 + CLI + SKILL 契约 | ✅ 已发布 |
+| **v0.1.1** | Swiss × Editorial UI + Insights Protocol + 真实数据验证 | ✅ 已发布 |
+| **v0.2.x** | `--with-video` 本地视频模式 + iframe 双向同步尝试 | ✅ 已发布 |
+| **v0.3.x** | Vital Console 第一版 + 弹幕侧栏 + 8 维仪表读数 | ✅ 已发布 |
+| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） | ✅ 已发布（current = 0.4.8）|
+| v0.5.0 | 多视频对比（同一 UP / 同系列横向对照仪表盘） | 计划中 |
+| v0.5.0 | 导出情绪摘要 CSV / Markdown 表格，便于研究报告复用 | 计划中 |
+| v0.6.0 | 抖音 / YouTube 数据源适配（保持同 SKILL 接口） | 探索中 |
+| v0.6.0 | 直播实时模式（边播边打分） | 探索中 |
+
+详细版本变更历史见 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。
 
 ---
 

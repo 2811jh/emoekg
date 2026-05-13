@@ -169,7 +169,8 @@ emoekg_BV1xxxxxx_20260507/
 ├── meta.json               # S1 输出
 ├── danmaku.json            # S1 输出（可能 1–50 MB）
 ├── chunks.md               # S2 输出 — Agent prompt
-├── scores.json             # S2 空骨架 → S3 你填
+├── scores.json             # S2 空骨架 → S3 你填（8 维分 + note）
+├── insights.json           # S3 你写（summary + 3 insights）
 ├── turnpoints.json         # S4 输出
 ├── emoekg_report.html      # S5 输出 — 最终交付
 └── (可选) video.mp4         # --with-video 模式用
@@ -220,7 +221,7 @@ emoekg_BV1xxxxxx_20260507/
 - `src/emoekg/stages/` — 4 个 Python stage（S1/S2/S4/S5）
 - `src/emoekg/_lib/` — 底层算法（窗口、峰值、JS 散度、佐证采样）
 - `src/emoekg/templates/` — HTML 模板 + 内联 ECharts + `app.js`
-- `tests/` — 157+ 个单测（`pytest` 跑通）
+- `tests/` — 194 个单测（`pytest` 跑通）
 - `requirements.txt` — Python 依赖
 
 ## Installation

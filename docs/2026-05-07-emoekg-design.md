@@ -560,21 +560,38 @@ scipy>=1.10.0
 
 ## 12. Roadmap
 
-### v0.1.0（首发）
+### v0.1.0（首发）— ✅ 已发布
 - 本文档定义的完整功能
 - 跑测示例 `BV18acMz4ELL`
 
-### v0.2.0（体验优化）
-- 直播实时模式（边播边打分）
-- 多视频对比模式
-- 弹幕用户聚类（发弹幕的人是谁）
+### v0.1.1（编辑器风格 UI）— ✅ 已发布
+- Swiss × Editorial 暗色主题
+- Insights Protocol（TL;DR + 3 洞察）
+- demos/ 真实数据验证
 
-### v0.3.0（平台扩展）
+### v0.2.x / v0.3.x（视频联动 + 弹幕侧栏）— ✅ 已发布
+- `--with-video` 本地 mp4 模式 + iframe fallback
+- 弹幕滚动侧栏 + 8 维过滤
+- Live Trace 脉冲指示
+
+### v0.4.x（Cockpit Console 重构）— ✅ 已发布（current = 0.4.8）
+- 见 §15 实施回顾
+- Vital Readout 8 维实时仪表 + 6 卡概览
+- 全部数字字符 mono + tabular-nums
+- ResizeObserver 高度同步
+- 路径决策：跨域不强求同步，明示 ECG = Remote Control
+
+### v0.5.0（多视频对比）— 计划中
+- 同 UP / 同系列横向情绪对比仪表盘
+- 导出情绪摘要 CSV / Markdown
+
+### v0.6.0（平台扩展）— 探索中
 - 抖音评论
 - YouTube 评论 + chat replay
 - Twitch chat
+- 直播实时模式（边播边打分）
 
-### v0.4.0（高级分析）
+### v0.7.0+（高级分析）— 远期
 - 情绪预测（给段视频预测情绪曲线）
 - 玩家人设分析（从弹幕反推用户群体特征）
 
@@ -599,6 +616,83 @@ scipy>=1.10.0
 - [ ] 在 CodeMaker Skills 列表中可安装
 - [ ] 至少 1 位 UX 研究员同事试用并反馈
 - [ ] Agent 正确触发率 ≥ 90%（说"分析 B 站弹幕情绪"时能正确启动 skill）
+
+---
+
+## 15. v0.4.x 实施回顾 — Cockpit Console（2026-05-11）
+
+> **Status**: Shipped (current = v0.4.8)
+> **Driver**: 真实使用反馈：v0.1.0 的 Swiss × Editorial 静态档案在交互上「太死」，研究员希望右侧成为可读的实时仪表，而不是滚动列表。
+
+### 15.1 信息架构调整
+
+原 §3.1 流水线产出的报告由「Hero Summary + ECG 主图 + 转折点卡 + 弹幕滚动列表」四块组成。v0.4.x 将报告 §02 模块重构为 **Cockpit Console（驾驶舱）** 三联仪表：
+
+```
+┌──────────────────┬─────────────────────────────────────┐
+│                  │  Vital Readout（8 维分量条）         │
+│   Bilibili       │  ── 鼠标悬停 ECG 即时驱动 ──         │
+│   iframe / mp4   ├─────────────────────────────────────┤
+│   播放器          │  Vital Stats Grid（6 卡概览）        │
+│                  │  总弹幕 / 极性 / 主导 / 峰 / 谷 / 转  │
+└──────────────────┴─────────────────────────────────────┘
+              ECG 心电图（兼具时间轴 + Remote Control）
+              ↓ click 跳转 / hover 驱动右侧 readout
+```
+
+弹幕**全表搜索**移交给 §05 模块（带 8 维过滤 + 关键词），§02 不再承担"翻全片找一句弹幕"的职能。这是 D7 决策（见 §15.4）。
+
+### 15.2 关键技术约束
+
+| # | 约束 | 现实 | 落地决策 |
+|---|---|---|---|
+| C1 | B 站 iframe 跨域 | 无法读取播放器当前时间 / 无法 seek 到指定秒 | 不再追求"视频驱动 ECG 同步"；UI 明示 ECG 是 Remote Control，hover 驱动整套仪表 |
+| C2 | `vital-stats-grid` 需要在窄屏 / 宽屏均横向对齐 | label 长度不一会换行，导致数字基线下沉 | `grid-template-rows: 18px 38px ...` 显式锁定行高 + label `nowrap + ellipsis` |
+| C3 | 数字字体一致性 | 多字体混用（serif 数字 + sans 文本）显得杂乱 | 全部计数 / 时间码 / 比率切到 `ui-monospace` 700 + `tabular-nums slashed-zero` |
+| C4 | hint 文案中英混排 | 用户群体主要为中文用户 | hint 全部以中文为主 + 必要时附 8–10 字英文小注，hint 字号统一 10.5px mono |
+| C5 | dashboard 高度跟随 iframe | iframe 不能 resize 时 dashboard 会显得过长 | `ResizeObserver` 监听 iframe 高度，动态 lock dashboard 高度 |
+
+### 15.3 v0.4.x 模块清单（templates 层）
+
+```
+report.html.j2 增量
+├── .cockpit-grid              # 视频 + dashboard 2-col 主布局
+├── .vital-readout             # 8 维分量条 + 主导情绪标签
+├── .vital-stats-grid          # 6 卡概览（vs-card * 6）
+├── .vs-card / .vs-num         # mono + tabular-nums + 行高锁定
+├── .monitor-head .hint        # 10.5px mono + 橙色脉冲箭头
+├── .headline.mono             # 全局数字标题样式
+└── @keyframes hint-pulse      # 箭头跳动（与 live-trace 区分语义）
+
+app.js 增量
+├── updateVitalReadout(t)      # ECG hover → 驱动 8 维条 + 主导 + trail
+├── renderVitalStats()         # scores.json → 6 卡聚合
+├── syncPanelHeight()          # ResizeObserver iframe → dashboard 高度
+└── bindBilibiliPostMessage()  # best-effort 跨域监听（可能失败，不强依赖）
+```
+
+### 15.4 新增决策（D7–D11）
+
+| # | 决策 | 结果 | 理由 |
+|---|---|---|---|
+| D7 | §02 改为 Cockpit Console，弹幕全表搜索移到 §05 | 接受 | 驾驶舱旁边不该是「滚动列表」，应是即时读数；研究员需要全量搜索时切到 §05 |
+| D8 | 跨域 iframe 不假装能反向同步 | 接受 | 与其用 best-effort polling 误导用户，不如声明 ECG = Remote Control |
+| D9 | 所有数字字符使用 `ui-monospace` + `tabular-nums slashed-zero` | 接受 | 仪表盘式 UI 要求列宽对齐 + 0/O 可辨；serif 数字在小尺寸下显得歪 |
+| D10 | `vital-stats-grid` 锁定 `grid-template-rows` | 接受 | 修复横屏模式下 label 长度差异导致的基线下沉 bug |
+| D11 | hint 字段统一为中文 + 橙色脉冲箭头 | 接受 | C4 约束；同时区分 live-trace（红，呼吸）与 hint-pulse（橙，跳动） |
+
+### 15.5 与原 §3 / §4 的兼容性
+
+- **Pipeline 5 阶段不变**：S1–S5 输入输出 schema 全部向后兼容，老 `scores.json` / `insights.json` 直接渲染即可拿到 v0.4.x UI。
+- **`_lib/` 算法层不变**：`turnpoint_algo` / `evidence_picker` / `plutchik` 校验等纯函数零改动。
+- **新增依赖：无**。Cockpit Console 全部由模板层（CSS + 原生 JS）实现，未引入新的 Python 包。
+- **测试新增**：`test_stage5_render` 增加 `vital-stats-grid` / `vital-readout` 字符串存在性断言（合计 194 测试通过）。
+
+### 15.6 已知限制
+
+1. **跨域 iframe 反向同步**：B 站 iframe 不开放 postMessage 协议，因此**视频播放进度不会驱动 ECG 光标**。`--with-video` 模式下使用本地 mp4 才能拿到完整双向联动。
+2. **超宽屏 (>1920px)**：6 卡仍排成 2×3 网格，未做单行 1×6 自适应。下一版可考虑 `auto-fit, minmax(160px, 1fr)`。
+3. **`syncPanelHeight` 在某些 Edge 版本回退**：少数浏览器不触发 `ResizeObserver`，dashboard 会保持模板默认高度。
 
 ---
 
