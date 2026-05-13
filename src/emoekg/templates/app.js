@@ -940,8 +940,9 @@ function mountPanel() {
   }
 }
 
-// v0.4.4: Vital console — big serif time code + dominant emotion,
-// 8-dim readout bars (2-col grid), nearby danmaku trail.
+// v0.4.5: Vital console — compact baseline header (time + dominant only),
+// 8-dim readout bars, nearby danmaku trail. No more DOMINANT label,
+// no more pulsing status dot — they were noise.
 function renderPanelShell(root) {
   const dimsHtml = DIMENSIONS_META.map(d => `
     <div class="vd-row" data-dim="${d.key}">
@@ -959,14 +960,12 @@ function renderPanelShell(root) {
       <span class="vital-time-code" id="vital-time-code" aria-live="polite">
         <span class="vt-min">00</span><span class="colon">:</span><span class="vt-sec">00</span>
       </span>
-      <div class="vital-dom">
-        <span>DOMINANT</span>
-        <span class="vital-dom-name" id="vital-dom-name">—</span>
-        <span class="vital-dom-score" id="vital-dom-score">0/10</span>
-      </div>
-      <div class="vital-status">
-        <span class="pulse"></span><span id="vital-status-text">待同步</span>
-      </div>
+      <span class="vital-dom">
+        <span class="vital-dom-zh" id="vital-dom-zh">—</span>
+        <span class="vital-dom-sep">·</span>
+        <span class="vital-dom-en" id="vital-dom-en">—</span>
+        <span class="vital-dom-score" id="vital-dom-score"><span class="num">0</span><span class="max">/10</span></span>
+      </span>
     </header>
 
     <section class="vital-dims" id="vital-dims">${dimsHtml}</section>
@@ -1035,24 +1034,27 @@ function updateVitalReadout(t, status) {
   });
   if (domKey && domScore > 0) {
     const domDef = DIMENSIONS_META.find(d => d.key === domKey);
-    const nameEl  = document.getElementById('vital-dom-name');
+    const zhEl    = document.getElementById('vital-dom-zh');
+    const enEl    = document.getElementById('vital-dom-en');
     const scoreEl = document.getElementById('vital-dom-score');
-    if (nameEl)  nameEl.textContent  = domDef.zh + ' · ' + domDef.en;
-    if (scoreEl) scoreEl.textContent = domScore + '/10';
+    if (zhEl)    zhEl.textContent = domDef.zh;
+    if (enEl)    enEl.textContent = domDef.en;
+    if (scoreEl) scoreEl.innerHTML = `<span class="num">${domScore}</span><span class="max">/10</span>`;
     const row = document.querySelector('.vd-row[data-dim="' + domKey + '"]');
     if (row) row.classList.add('is-dom');
   } else {
-    // SPARSE chunk — show ZERO label
-    const nameEl  = document.getElementById('vital-dom-name');
+    // SPARSE chunk → mute the dominant readout
+    const zhEl    = document.getElementById('vital-dom-zh');
+    const enEl    = document.getElementById('vital-dom-en');
     const scoreEl = document.getElementById('vital-dom-score');
-    if (nameEl)  nameEl.textContent  = '— 静默 SILENT';
-    if (scoreEl) scoreEl.textContent = '0/10';
+    if (zhEl)    zhEl.textContent = '静默';
+    if (enEl)    enEl.textContent = 'SILENT';
+    if (scoreEl) scoreEl.innerHTML = `<span class="num">0</span><span class="max">/10</span>`;
   }
 
-  if (status !== undefined) {
-    const s = document.getElementById('vital-status-text');
-    if (s) s.textContent = status;
-  }
+  // (status pulse removed in v0.4.5; the ECG hover + iframe-mode hint
+  // already convey the sync state.)
+  void status;
 
   updateVitalDanmakus(sec);
 }

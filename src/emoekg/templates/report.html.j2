@@ -540,12 +540,16 @@ section.zone::after {
   gap: 10px;
 }
 .monitor-head .hint {
-  font-family: var(--ff-sans);
-  font-size: 13px;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
   color: var(--n-6);
-  max-width: 50ch;
+  letter-spacing: 0.08em;
+  max-width: 56ch;
   text-align: right;
+  line-height: 1.5;
 }
+.monitor-head .hint b { color: var(--n-8); font-weight: 500; }
+.monitor-head .hint .sep { color: var(--n-4); margin: 0 6px; }
 
 /* --- LIVE TRACE indicator (pulse dot + label) ----------------------------- */
 .live-trace {
@@ -623,22 +627,19 @@ section.zone::after {
 .video-col-hint {
   margin-top: 8px;
   font-family: var(--ff-mono);
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--n-6);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .video-col-hint .arrow {
   color: var(--acc);
   font-family: var(--ff-mono);
-  font-size: 12px;
+  font-size: 11px;
   animation: hint-pulse 2.4s ease-in-out infinite;
 }
-.video-col-hint .sep { color: var(--n-4); }
-.video-col-hint b { color: var(--n-8); font-weight: 500; letter-spacing: 0.16em; }
 @keyframes hint-pulse {
   0%, 100% { opacity: 0.4; transform: translateX(0); }
   50% { opacity: 1; transform: translateX(-3px); }
@@ -670,32 +671,28 @@ section.zone::after {
 }
 .danmaku-panel > * { position: relative; z-index: 1; }
 
-/* --- Block 1: Vital Header — big time code + dominant emotion --------- */
+/* --- Block 1: Vital Header — compact single-line baseline row --------- */
 .vital-card {
   flex: 0 0 auto;
-  padding: 12px 14px 11px;
+  padding: 10px 14px 8px;
   border-bottom: 1px solid var(--n-3);
   background:
-    linear-gradient(180deg, rgba(235,94,40,0.10) 0%, rgba(235,94,40,0) 100%);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 14px;
-  row-gap: 4px;
-  align-items: end;
-}
-.vital-time-code {
-  grid-row: 1 / 3;
-  font-family: var(--ff-serif);
-  font-size: 44px;
-  letter-spacing: -0.04em;
-  font-weight: 600;
-  color: var(--n-9);
-  line-height: 0.85;
-  font-variant-numeric: tabular-nums;
+    linear-gradient(180deg, rgba(235,94,40,0.08) 0%, rgba(235,94,40,0) 100%);
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 10px;
+}
+.vital-time-code {
+  font-family: var(--ff-serif);
+  font-size: 28px;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: var(--n-9);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: baseline;
 }
 .vital-time-code .colon {
   color: var(--acc);
@@ -706,57 +703,36 @@ section.zone::after {
   50.01%, 100% { opacity: 0.25; }
 }
 .vital-dom {
-  align-self: end;
-  font-family: var(--ff-mono);
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  color: var(--n-6);
-  text-transform: uppercase;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.vital-dom-name {
   font-family: var(--ff-serif);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--n-9);
-  letter-spacing: 0;
-  text-transform: none;
-}
-.vital-dom-score {
-  font-family: var(--ff-mono);
-  font-size: 13px;
-  color: var(--acc);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-.vital-status {
-  align-self: start;
-  text-align: right;
-  font-family: var(--ff-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  color: var(--n-6);
-  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   white-space: nowrap;
 }
-.vital-status .pulse {
-  display: inline-block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--acc);
-  box-shadow: 0 0 0 0 rgba(235,94,40,0.55);
-  animation: vital-dot 1.4s ease-out infinite;
-  margin-right: 5px;
-  vertical-align: -1px;
+.vital-dom-en {
+  font-family: var(--ff-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--n-7);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
-@keyframes vital-dot {
-  0%   { box-shadow: 0 0 0 0 rgba(235,94,40,0.55); }
-  70%  { box-shadow: 0 0 0 6px rgba(235,94,40,0); }
-  100% { box-shadow: 0 0 0 0 rgba(235,94,40,0); }
+.vital-dom-sep { color: var(--n-5); margin: 0 2px; font-family: var(--ff-mono); font-size: 10px; }
+.vital-dom-score {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--acc);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
+.vital-dom-score .num { color: var(--acc); }
+.vital-dom-score .max { color: var(--n-5); }
 
 /* --- Block 2: 8-dim readout bars --------------------------------------- */
 .vital-dims {
@@ -1813,16 +1789,14 @@ section.zone::after {
         <span class="freq">Lead I · Source Video</span>
       </span>
     </span>
-    <span class="hint">心电图 = 视频遥控器 · 鼠标悬停浏览，点击跳转</span>
+    <span class="hint"><b>ECG</b><span class="sep">·</span>悬停预览<span class="sep">·</span>点击跳转</span>
   </div>
   <div class="media-row">
     <div class="video-col">
       <div id="video-wrapper"></div>
       <div class="video-col-hint" id="video-col-hint">
         <span class="arrow">↓</span>
-        <b>使用心电图作为进度条</b>
-        <span class="sep">/</span>
-        <span>悬停预览 · 点击跳转</span>
+        <span>使用心电图控制视频</span>
       </div>
     </div>
 
@@ -1840,7 +1814,7 @@ section.zone::after {
           <span class="freq">Lead II · n={{ total_danmaku }}</span>
         </span>
       </span>
-      <span class="hint">悬停查看每 {{ window_size }}s 窗口的完整情绪读数 · 橙色 ▲ 为情绪转折点，悬停看详情、点击同步视频 · 拖动下方滑块缩放时间范围</span>
+      <span class="hint"><b>Hover</b> 查看 {{ window_size }}s 窗口读数<span class="sep">·</span><b>▲</b> 转折点<span class="sep">·</span>底部滑块缩放</span>
     </div>
     <div class="ecg-canvas-box">
       <div id="ecg-chart"></div>
@@ -1858,7 +1832,7 @@ section.zone::after {
           <span class="freq">关键读数 · {{ total_danmaku }} 弹幕</span>
         </span>
       </span>
-      <span class="hint">情绪心电图的统计摘要 · 点卡可跳转视频对应时刻</span>
+      <span class="hint">全片关键读数<span class="sep">·</span>点击卡片跳转视频</span>
     </div>
     <div class="vital-stats-grid" id="vital-stats-grid"></div>
   </div>
