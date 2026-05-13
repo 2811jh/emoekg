@@ -885,34 +885,7 @@ const NEGATIVE_DIMS = ['fear', 'sadness', 'disgust', 'anger'];
 
 const PanelStore = {
   currentTime: 0,
-  tpByDmIdx: new Map(),  // dm_index → { tp_id, tp_type } (kept for §04 ▲ badges in renderTurnpoints)
 };
-
-// --- row normalization ---------------------------------------------------
-// The raw DANMAKUS array comes from Stage 1 (src/emoekg/_lib/danmaku_client.py
-// normalizes bilibili-api-python output to `{time, text, mode, color, ...}`).
-// Panel only consumes three fields. The normalized row preserves just those
-// plus the 0-based array index (`idx`) — used in `tpByDmIdx` for ▲ badges.
-function normalizePanelRows(raw) {
-  return raw
-    .map((d, i) => ({
-      idx: i,
-      progress: Number(d.time != null ? d.time : (d.progress || 0)),
-      content: String(d.text != null ? d.text : (d.content || '')),
-    }))
-    .sort((a, b) => a.progress - b.progress);
-}
-
-// --- binary search: find idx of last row with progress <= t --------------
-function findRowIdxAt(rows, t) {
-  let lo = 0, hi = rows.length - 1, ans = 0;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (rows[mid].progress <= t) { ans = mid; lo = mid + 1; }
-    else { hi = mid - 1; }
-  }
-  return ans;
-}
 
 function mountPanel() {
   const root = document.getElementById('panel-root');
