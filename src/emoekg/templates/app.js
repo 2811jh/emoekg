@@ -266,7 +266,7 @@ function renderOverview() {
     <div class="vitals">
       <div class="vital" data-seek="${hottest.time_start}">
         <div class="label">Peak · 最炸时刻<span class="marker" style="color:${ACC}">HIGH</span></div>
-        <div class="headline"><span class="accent">${fmtHMS(hottest.time_start)}</span></div>
+        <div class="headline mono"><span class="accent">${fmtHMS(hottest.time_start)}</span></div>
         <div class="detail">
           ${DIM_LABEL[hottestDim]} 达到 <b style="color:${INK_HI}">${hottestVal}/10</b>
           · n=${hottest.n_danmaku} · chunk ${hottest.chunk_id}
@@ -274,7 +274,7 @@ function renderOverview() {
       </div>
       <div class="vital" data-seek="${coldest.time_start}">
         <div class="label">Valley · 最冷时刻<span class="marker" style="color:${INK_MUTED}">LOW</span></div>
-        <div class="headline">${fmtHMS(coldest.time_start)}</div>
+        <div class="headline mono">${fmtHMS(coldest.time_start)}</div>
         <div class="detail">
           全维平均 <b style="color:${INK_HI}">${coldestAvg}</b>
           · n=${coldest.n_danmaku} · chunk ${coldest.chunk_id}

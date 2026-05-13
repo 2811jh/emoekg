@@ -232,7 +232,13 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   color: var(--n-8);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.byline .v.mono { font-family: var(--ff-mono); font-weight: 400; color: var(--n-9); }
+.byline .v.mono {
+  font-family: var(--ff-mono);
+  font-weight: 700;
+  color: var(--n-9);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: 0.02em;
+}
 @media (max-width: 860px) {
   .byline { grid-template-columns: repeat(2, 1fr); }
   .byline .cell { border-right: 0; border-bottom: 1px solid var(--n-4); padding-left: 0 !important; }
@@ -506,6 +512,12 @@ section.zone::after {
   letter-spacing: -0.02em;
   color: var(--n-9);
   margin-bottom: 10px;
+}
+.vital .headline.mono {
+  font-family: var(--ff-mono);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 .vital .headline .accent { color: var(--acc); }
 .vital .detail {
@@ -859,6 +871,7 @@ section.zone::after {
   color: var(--n-5);
   flex: 0 0 32px;
   letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 .vital-dm-text {
   flex: 1 1 0;
@@ -910,9 +923,10 @@ section.zone::after {
   background: var(--n-1);
   border: 1px solid var(--n-4);
   border-radius: 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  display: grid;
+  /* row 1: label  row 2: 主数字 (固定 38px, 内容贴底)  row 3: sub  row 4: spark/spacer */
+  grid-template-rows: auto 38px auto 1fr;
+  row-gap: 5px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -959,20 +973,23 @@ section.zone::after {
 }
 .vs-num {
   font-family: var(--ff-mono);
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--n-9);
   letter-spacing: 0.01em;
   line-height: 1;
-  margin-top: 4px;
   font-variant-numeric: tabular-nums slashed-zero;
+  display: flex;
+  align-items: flex-end;  /* baseline pinned to row bottom */
+  height: 38px;
 }
 .vs-num b {
   color: var(--acc);
   font-weight: 700;
   font-family: var(--ff-serif);
   letter-spacing: -0.01em;
-  font-size: 32px;
+  font-size: 30px;
+  line-height: 1;
 }
 .vs-num .unit {
   font-family: var(--ff-mono);
@@ -981,25 +998,26 @@ section.zone::after {
   font-weight: 500;
   margin-left: 4px;
   letter-spacing: 0.06em;
+  align-self: flex-end;
+  padding-bottom: 2px;
 }
-.vs-num.vs-pos { color: #6FAE6E; }
-.vs-num.vs-neg { color: #C8472D; }
 .vs-sub {
   font-family: var(--ff-sans);
   font-size: 10.5px;
   color: var(--n-6);
   letter-spacing: 0.02em;
   line-height: 1.45;
-  margin-top: auto;
 }
-/* Mini sparkline strip — just a row of 16 vertical bars to add density */
 .vs-spark {
   display: flex;
   align-items: flex-end;
   gap: 1px;
   height: 18px;
-  margin-top: 6px;
+  align-self: end;  /* push sparkline to the bottom of row 4 */
 }
+.vs-num.vs-pos { color: #6FAE6E; }
+.vs-num.vs-neg { color: #C8472D; }
+/* Mini sparkline strip — just a row of 16 vertical bars to add density */
 .vs-spark span {
   flex: 1 1 0;
   min-width: 0;
@@ -1162,9 +1180,10 @@ section.zone::after {
   all: unset;
   color: var(--n-9);
   font-family: var(--ff-mono);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums slashed-zero;
   padding: 2px 4px;
   cursor: pointer;
   border-bottom: 1px dashed transparent;
@@ -1334,6 +1353,7 @@ section.zone::after {
   font-size: 11px;
   color: var(--n-6);
   letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums slashed-zero;
 }
 #danmaku-list .item .text {
   color: var(--n-8);
