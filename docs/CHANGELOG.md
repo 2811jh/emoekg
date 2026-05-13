@@ -1,13 +1,22 @@
 # Changelog
 
 按 [Semver](https://semver.org/) 维护，记录每个版本的关键变更。
-当前版本：**v0.4.9**（current）。
+当前版本：**v0.4.10**（current）。
 
 ---
 
 ## v0.4.x — Cockpit Console（2026-05-11 系列）
 
 > **主题**：将报告 §02 模块从「视频 + 弹幕滚动列表」重构为「视频 + 8 维 Vital Readout 仪表盘」，建立"驾驶舱 / 监护仪"语义体系。详细设计见 [`2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md#15-v04x-实施回顾--cockpit-console2026-05-11)。
+
+### v0.4.10 — 单一文件夹收纳（refine v0.4.9）
+- **change (SKILL Step 6)**: 不再「桌面散一份 HTML」，改为**整个 working dir 改名为 `AI情绪心电图-<关键字>/`**，文件夹内额外放一份同名 `.html` 副本
+- **rationale**: v0.4.9 的「桌面 HTML + 旁边一个临时目录」让桌面看起来很乱；用户希望"一次跑完只产出一个文件夹"
+- **change (SKILL)**: 重名冲突处理对象从「同名 HTML」改为「同名文件夹」，加 `_2`/`_3` 后缀
+- **change (SKILL)**: 跨平台命令模板由「`copy`/`cp`」改为「`move`+`copy`」组合，强烈推荐 Python 单行（`shutil.move` + `shutil.copy2`）
+- **change (SKILL)**: 输出目录结构图分两阶段（Step 2–4 临时占位 + Step 6 改名后）
+- **change (SKILL Common Mistakes)**: 加新陷阱「只复制 HTML 不改文件夹名」
+- **change (README)**: 数据产物布局图重画为「单文件夹收纳」视图
 
 ### v0.4.9 — 默认桌面输出 + 友好命名（SKILL 层规则）
 - **feat (SKILL)**: Step 1 — 默认输出位置 = 用户桌面（Windows: `%USERPROFILE%\Desktop`、macOS/Linux: `~/Desktop`），用户没显式指定时不再追问"放哪里"

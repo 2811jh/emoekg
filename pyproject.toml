@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "emoekg"
-version = "0.4.9"
+version = "0.4.10"
 description = "Emotional ECG — Bilibili danmaku 8-dim emotional timeline with Cockpit Console report (Agent-driven Plutchik scoring, single-file offline HTML)"
 readme = "README.md"
 license = { text = "MIT" }

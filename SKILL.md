@@ -163,49 +163,69 @@ emoekg finalize -o <DESKTOP>/emoekg_<BV>_<YYYYMMDD>/ --with-video
 - [ ] HTML 打开后图表非空、至少能看到一条情绪曲线
 - [ ] HTML Hero 区 TL;DR 和 Insights 能正常显示
 - [ ] 非 SPARSE chunk 不要全 0（警示线：见 S4 `WARN` 输出）
-- [ ] **Step 6 已执行**：桌面有 `AI情绪心电图-<关键字>.html`，能直接双击打开
-- [ ] **告知用户的路径**是桌面上的友好名 HTML，不是 working dir 里的 `emoekg_report.html`
+- [ ] **Step 6 已执行**：桌面有 `AI情绪心电图-<关键字>/` 文件夹，文件夹里同时有 `emoekg_report.html`（原始）+ `AI情绪心电图-<关键字>.html`（友好名副本）
+- [ ] **告知用户的路径**是桌面那个文件夹和文件夹内的友好名 HTML，不要再提 `emoekg_<BV>_<日期>` 临时目录或 `emoekg_report.html` 原始名
 
-**Step 6 — 友好命名 + 桌面投放（必做，v0.4.9+）**
+**Step 6 — 文件夹改名 + 友好 HTML 副本（必做，v0.4.9+）**
 
-CLI 产出的 `emoekg_report.html` 文件名对终端用户不友好。**你必须**额外把这份 HTML 复制 / 重命名一份放到桌面根目录，命名规则如下：
+CLI 跑完后，working dir 名是 `emoekg_<BV>_<日期>`，HTML 名是 `emoekg_report.html`——对终端用户都不友好。**你必须把整个 working dir 改名为 `AI情绪心电图-<视频关键字>`，并在文件夹内额外放一份同名 HTML 副本**。
 
 ```
-AI情绪心电图-<视频关键字>.html
+<DESKTOP>/AI情绪心电图-<视频关键字>/
+├── meta.json
+├── danmaku.json
+├── chunks.md
+├── scores.json
+├── insights.json
+├── turnpoints.json
+├── emoekg_report.html              ← CLI 原始产出（保留，断点续跑要用）
+├── (可选) video.mp4
+└── AI情绪心电图-<视频关键字>.html    ← 友好命名副本，让用户双击的就是这个
 ```
 
 **关键字提取规则**：
-1. 从 `meta.json` 的 `title` 字段读视频标题
+1. 从 `<working_dir>/meta.json` 的 `title` 字段读视频标题
 2. 去掉装饰性符号：`【】《》「」()[]『』""''!?！？` 全角半角都去
 3. 去掉广告 / 标题党词：`最新`、`必看`、`重磅`、`官方`、`独家`、`完整版`、`超清`、`高清`、`4K` 等
 4. 提取 4–14 个汉字 / 数字 / 字母的核心短语，删除空格和分隔符
-5. 总文件名长度 ≤ 60 字符（含 `AI情绪心电图-` 前缀和 `.html` 后缀）；过长则截断到尾部
+5. 总文件夹/文件名长度 ≤ 60 字符（含 `AI情绪心电图-` 前缀和 `.html` 后缀）；过长则截断到尾部
 6. 替换 Windows 非法字符 `< > : " / \ | ? *` 为空字符串
 
 **示例**：
 
-| `meta.title` | 关键字 | 最终文件名 |
+| `meta.title` | 关键字 | 桌面文件夹 / 内含友好 HTML |
 |---|---|---|
-| 「躁动的地平线 RLcraft现代版本 MC生存试玩」 | `RLcraft现代MC试玩` | `AI情绪心电图-RLcraft现代MC试玩.html` |
-| 「万字攻略 一口气玩会亡者世界！惊变末日搜打撤 网易必玩神作」 | `亡者世界万字攻略` | `AI情绪心电图-亡者世界万字攻略.html` |
-| 「【官方】《王者荣耀》新英雄 露娜技能解读 4K超清」 | `王者荣耀露娜技能解读` | `AI情绪心电图-王者荣耀露娜技能解读.html` |
+| 「躁动的地平线 RLcraft现代版本 MC生存试玩」 | `RLcraft现代MC试玩` | `AI情绪心电图-RLcraft现代MC试玩/` + 同名 `.html` |
+| 「万字攻略 一口气玩会亡者世界！惊变末日搜打撤 网易必玩神作」 | `亡者世界万字攻略` | `AI情绪心电图-亡者世界万字攻略/` + 同名 `.html` |
+| 「【官方】《王者荣耀》新英雄 露娜技能解读 4K超清」 | `王者荣耀露娜技能解读` | `AI情绪心电图-王者荣耀露娜技能解读/` + 同名 `.html` |
 
-**操作方式**（任选其一，**优先用 Python 单行命令**避免编码问题）：
+**操作方式**（**强烈推荐 Python 单行**——跨平台、避中文编码坑、改名+复制原子完成）：
 
 ```bash
-# Windows（cmd / PowerShell 都可，注意中文路径加引号）
-copy "<working_dir>\emoekg_report.html" "%USERPROFILE%\Desktop\AI情绪心电图-<关键字>.html"
-
-# macOS / Linux
-cp "<working_dir>/emoekg_report.html" "$HOME/Desktop/AI情绪心电图-<关键字>.html"
-
-# 跨平台（Python，最稳——推荐）
-python -c "import shutil, pathlib, os; src=pathlib.Path(r'<working_dir>/emoekg_report.html'); dst=pathlib.Path(os.path.expanduser('~/Desktop'))/'AI情绪心电图-<关键字>.html'; shutil.copy2(src, dst); print(dst)"
+python -c "import shutil, pathlib, os; src=pathlib.Path(r'<working_dir>'); name='AI情绪心电图-<关键字>'; dst=pathlib.Path(os.path.expanduser('~/Desktop'))/name; n=2; orig=dst; \
+  exec('while dst.exists():\n    dst = orig.with_name(orig.name + f\"_{n}\"); n += 1'); \
+  shutil.move(str(src), str(dst)); shutil.copy2(dst/'emoekg_report.html', dst/(name+'.html')); print(dst)"
 ```
 
-**重名处理**：桌面已存在同名 HTML 时，文件名追加 `_2`、`_3` 后缀，**不要覆盖**用户上次跑出来的报告。
+或分两步更直观：
 
-**最终告知用户**时，明确给出桌面 HTML 的绝对路径和友好名（例如「报告已生成：`C:\Users\xxx\Desktop\AI情绪心电图-亡者世界万字攻略.html`，双击即可打开」），**不要只**给 working dir。
+```bash
+# Windows cmd
+move "<DESKTOP>\emoekg_<BV>_<日期>" "<DESKTOP>\AI情绪心电图-<关键字>"
+copy "<DESKTOP>\AI情绪心电图-<关键字>\emoekg_report.html" "<DESKTOP>\AI情绪心电图-<关键字>\AI情绪心电图-<关键字>.html"
+
+# macOS / Linux
+mv "$HOME/Desktop/emoekg_<BV>_<日期>" "$HOME/Desktop/AI情绪心电图-<关键字>"
+cp "$HOME/Desktop/AI情绪心电图-<关键字>/emoekg_report.html" "$HOME/Desktop/AI情绪心电图-<关键字>/AI情绪心电图-<关键字>.html"
+```
+
+**重名处理**：桌面已存在同名文件夹时，新文件夹追加 `_2`、`_3` 后缀（例如 `AI情绪心电图-亡者世界万字攻略_2/`），**不要覆盖**用户上次跑出来的报告。
+
+**最终告知用户**时，给出**文件夹路径**和**文件夹内 HTML 路径**两条信息，让用户清楚双击哪个文件即可：
+
+> 报告已生成：
+> 📁 文件夹：`C:\Users\xxx\Desktop\AI情绪心电图-亡者世界万字攻略\`
+> 🖱️ 双击打开：`C:\Users\xxx\Desktop\AI情绪心电图-亡者世界万字攻略\AI情绪心电图-亡者世界万字攻略.html`
 
 ## Quick Reference
 
@@ -222,29 +242,47 @@ python -c "import shutil, pathlib, os; src=pathlib.Path(r'<working_dir>/emoekg_r
 
 ### 输出位置 & 命名规范（v0.4.9+）
 
-| 角色 | 默认位置 | 命名规则 | 备注 |
+| 阶段 | 路径 | 名称 | 说明 |
 |---|---|---|---|
-| **Working dir**（中间产物 + 原始 HTML） | `<DESKTOP>/emoekg_<BV>_<YYYYMMDD>/` | `emoekg_<BV号>_<日期>` | 用户传 `-o` 时尊重用户路径；不传时一律放桌面 |
-| **交付 HTML**（终端用户看的） | `<DESKTOP>/AI情绪心电图-<关键字>.html` | `AI情绪心电图-<视频关键字>` | Step 6 强制生成；与 working dir 内的 `emoekg_report.html` 同源 |
+| **Step 2 临时 working dir** | `<DESKTOP>/emoekg_<BV>_<YYYYMMDD>/` | `emoekg_<BV号>_<日期>` | CLI 不知道视频标题，先用 BV 号占位 |
+| **Step 6 改名后最终目录** | `<DESKTOP>/AI情绪心电图-<视频关键字>/` | `AI情绪心电图-<关键字>` | 拿到 `meta.json` 后整个目录 rename |
+| **目录内友好 HTML** | `<DESKTOP>/AI情绪心电图-<关键字>/AI情绪心电图-<关键字>.html` | 同名 `.html` 副本 | 用户双击的就是这个 |
 
 **判断"用户是否指定了输出位置"**：
 - 触发用户指定模式的表达：`-o`、`--output`、`放到 X`、`输出到 X`、`存到 X`、`保存到 X`、`报告放 X`
-- 没说就**默认桌面**——不要追问
+- 没说就**默认桌面**——不要追问；按 Step 1–6 流程跑
 
 ### 输出目录结构
 
+**Step 2–4 进行中（临时占位名）**：
+
 ```
 <DESKTOP>/
-├── emoekg_BV1xxxxxx_20260507/      # working dir（中间产物 + 原始 HTML）
-│   ├── meta.json                   #   S1 输出
-│   ├── danmaku.json                #   S1 输出（可能 1–50 MB）
-│   ├── chunks.md                   #   S2 输出 — Agent prompt
-│   ├── scores.json                 #   S2 空骨架 → S3 你填（8 维分 + note）
-│   ├── insights.json               #   S3 你写（summary + 3 insights）
-│   ├── turnpoints.json             #   S4 输出
-│   ├── emoekg_report.html          #   S5 输出（原始名）
-│   └── (可选) video.mp4             #   --with-video 模式用
-└── AI情绪心电图-<视频关键字>.html    # Step 6 投放（终端用户双击即开）
+└── emoekg_BV1xxxxxx_20260513/      # CLI 跑流水线时的 working dir
+    ├── meta.json                   #   S1 输出
+    ├── danmaku.json                #   S1 输出（可能 1–50 MB）
+    ├── chunks.md                   #   S2 输出 — Agent prompt
+    ├── scores.json                 #   S3 你填（8 维分 + note）
+    ├── insights.json               #   S3 你写（summary + 3 insights）
+    ├── turnpoints.json             #   S4 输出
+    ├── emoekg_report.html          #   S5 输出（原始名）
+    └── (可选) video.mp4             #   --with-video 模式用
+```
+
+**Step 6 完成后（最终交付给用户的样子）**：
+
+```
+<DESKTOP>/
+└── AI情绪心电图-亡者世界万字攻略/                 # 整个目录被改名
+    ├── meta.json
+    ├── danmaku.json
+    ├── chunks.md
+    ├── scores.json
+    ├── insights.json
+    ├── turnpoints.json
+    ├── emoekg_report.html                       # 原始名保留（断点续跑要用）
+    ├── (可选) video.mp4
+    └── AI情绪心电图-亡者世界万字攻略.html         # ★ 友好命名副本，双击打开
 ```
 
 ### 打分小抄（0/3/6/9 四锚点）
@@ -271,9 +309,10 @@ python -c "import shutil, pathlib, os; src=pathlib.Path(r'<working_dir>/emoekg_r
 | **自己写 Python 算分** | 别。rubric 的重点就是**你自己理解弹幕**，算法层会毁掉这件事的价值 |
 | **把全部弹幕抄回 scores.json** | 不用。只打 8 维分 + note |
 | **追问"放哪里？"** | 不要。默认桌面；除非用户说 `-o XXX` 之类显式路径 |
-| **跳过 Step 6 直接交付 working dir 路径** | 终端用户不会打开 `emoekg_report.html` 这种英文名；必须复制一份成 `AI情绪心电图-<关键字>.html` 放桌面 |
-| **把视频原标题直接当文件名** | 标题里有 `《》【】！？` 之类符号，Windows 写不进；按 Step 6 关键字提取规则做净化 |
-| **覆盖用户上次跑出来的报告** | 桌面同名 HTML 已存在时加 `_2`/`_3`，不要 overwrite |
+| **跳过 Step 6 直接交付临时目录路径** | `emoekg_<BV>_<日期>` 终端用户看不懂；必须改名为 `AI情绪心电图-<关键字>` 并放一份同名 HTML 副本进去 |
+| **只复制 HTML 不改文件夹名** | 桌面会同时存在临时目录 + 散落的 HTML，看起来很乱；要的是一个文件夹装下所有产物 |
+| **把视频原标题直接当文件名/夹名** | 标题里有 `《》【】！？` 之类符号，Windows 写不进；按 Step 6 关键字提取规则做净化 |
+| **覆盖用户上次跑出来的报告** | 桌面同名文件夹已存在时加 `_2`/`_3`，不要 overwrite 整个目录 |
 
 ## Red Flags — STOP and Reconsider
 

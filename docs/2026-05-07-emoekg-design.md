@@ -680,7 +680,7 @@ app.js 增量
 | D9 | 所有数字字符使用 `ui-monospace` + `tabular-nums slashed-zero` | 接受 | 仪表盘式 UI 要求列宽对齐 + 0/O 可辨；serif 数字在小尺寸下显得歪 |
 | D10 | `vital-stats-grid` 锁定 `grid-template-rows` | 接受 | 修复横屏模式下 label 长度差异导致的基线下沉 bug |
 | D11 | hint 字段统一为中文 + 橙色脉冲箭头 | 接受 | C4 约束；同时区分 live-trace（红，呼吸）与 hint-pulse（橙，跳动） |
-| D12 | 默认输出位置 = 桌面；交付文件名 = `AI情绪心电图-<关键字>.html` | 接受（v0.4.9 SKILL 层规则） | 终端用户看不到 `emoekg_report.html` 这种英文名；CLI 不强改文件名（保持 demos / 断点续跑兼容），改由 SKILL Step 6 强制 Agent 复制 + 重命名 |
+| D12 | 默认输出位置 = 桌面；交付**单一文件夹** `AI情绪心电图-<关键字>/`，文件夹内含同名 `.html` 副本 | 接受（v0.4.9 提出 / v0.4.10 收敛为单文件夹） | 终端用户看不到 `emoekg_report.html` 这种英文名；CLI 不强改文件名（保持 demos / 断点续跑兼容），改由 SKILL Step 6 强制 Agent **整个 working dir 改名 + 内放友好 HTML 副本**——既整洁又不破坏中间产物结构 |
 
 ### 15.5 与原 §3 / §4 的兼容性
 
