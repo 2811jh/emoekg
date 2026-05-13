@@ -1,13 +1,23 @@
 # Changelog
 
 按 [Semver](https://semver.org/) 维护，记录每个版本的关键变更。
-当前版本：**v0.4.12**（current）。
+当前版本：**v0.4.13**（current）。
 
 ---
 
 ## v0.4.x — Cockpit Console（2026-05-11 系列）
 
 > **主题**：将报告 §02 模块从「视频 + 弹幕滚动列表」重构为「视频 + 8 维 Vital Readout 仪表盘」，建立"驾驶舱 / 监护仪"语义体系。详细设计见 [`2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md#15-v04x-实施回顾--cockpit-console2026-05-11)。
+
+### v0.4.13 — README 加「📑 文件清单」逐文件说明
+- **docs (README)**: 新增 `## 📑 文件清单` 模块，按目录分组覆盖**全部 80 个 git tracked 文件**
+  - 9 个分组：根目录 / `docs/` / `docs/release-notes/` / `docs/superpowers/` / `demos/` / `src/emoekg/` / `_lib/` / `stages/` / `templates/` / `tests/`
+  - 每个文件 3 列说明：文件路径（点击直达）、用途、谁会读它（target audience）
+  - `demos/` 28 文件采用「7 文件命名规则 + 4 BV 子目录列表」结构（4 BV × 7 文件笛卡尔积），避免机械重复但 100% 覆盖
+  - tests 表加 case 数列（合计 194）
+  - 末尾给出 9 分组数量加和 80 ✓ 与 `git ls-files | wc -l` 互验
+- **docs (README demos)**: 修正 4 个 BV 子目录的真实视频标题（直接读 `meta.json` 的 `title` 字段）
+- **rationale**: 用户希望"每个文件都不能跳过"，确保 README 是仓库的精确地图，而不是抽样描述
 
 ### v0.4.12 — 删除冗余 `requirements.txt`
 - **chore**: `requirements.txt` 内容与 `pyproject.toml` 的 `dependencies = [...]` 完全一致（4 行对 4 行），保留两份会产生 "谁是 source of truth" 的歧义；删除以遵循现代 Python 包工程标准（pyproject.toml 单一来源）

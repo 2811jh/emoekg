@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.12-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.13-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -368,6 +368,151 @@ CLI / Stages（编排层）  ──依赖──→  _lib（纯业务逻辑）  �
 
 ---
 
+## 📑 文件清单（每一个 tracked 文件，一个不漏）
+
+仓库 git 追踪范围内共 **80 个文件**，按目录分组逐一说明。**未追踪**的运行时产物（`__pycache__/`、`*.egg-info/`、`build/`、`.pytest_cache/`、`emoekg_*_*/`、`AI情绪心电图-*/`、`*.mp4` 等）见 [`.gitignore`](.gitignore)，本清单不重复。
+
+### 根目录（5 文件）
+
+| 文件 | 用途 | 谁会读它 |
+|---|---|---|
+| [`.gitignore`](.gitignore) | Git 忽略规则（分类注释 + 防御性 `-p/`/`-r/` 入口） | git 自身 |
+| [`LICENSE`](LICENSE) | MIT 开源协议正文 | GitHub / PyPI / `npx skills add` 自动识别 |
+| [`pyproject.toml`](pyproject.toml) | PEP 517 包构建配置 + 依赖唯一来源 + CLI entry point | `pip install -e .` / `python -m build` |
+| [`README.md`](README.md) | 主入口（安装 / 演示 / 命令 / 项目结构 / 本文件清单） | 终端用户 / GitHub 主页自动渲染 |
+| [`SKILL.md`](SKILL.md) | **Agent 契约**（工作流 + Stage 3 打分规则 + Step 6 桌面投放规则） | AI Agent / `npx skills add` 装载入口 |
+
+### `docs/` — 设计 + 历史档案（4 文件）
+
+| 文件 | 用途 | 谁会读它 |
+|---|---|---|
+| [`docs/2026-05-07-emoekg-design.md`](docs/2026-05-07-emoekg-design.md) | v0.1.0 原始设计 spec + §15 v0.4.x Cockpit Console 实施回顾（D1–D12 决策） | 接手开发者 / 想了解决策来由的 |
+| [`docs/2026-05-07-emoekg-plan.md`](docs/2026-05-07-emoekg-plan.md) | v0.1.0 完整实施计划（Task 1 → Task 15 拆分） | 历史档案 |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **浓缩版本谱**（v0.1.0 → v0.4.12，每版一段） | 想快速了解迭代脉络的 |
+| [`docs/scoring_rubric.md`](docs/scoring_rubric.md) | Stage 3 打分细则（0–10 刻度 / SPARSE 规则 / Insights Protocol） | **AI Agent 必读** |
+
+### `docs/release-notes/` — 单版本长 release note（5 文件）
+
+| 文件 | 用途 |
+|---|---|
+| [`docs/release-notes/README.md`](docs/release-notes/README.md) | 本目录索引 + 与 `CHANGELOG.md` 的边界说明 |
+| [`docs/release-notes/v0.3.0.md`](docs/release-notes/v0.3.0.md) | `--with-video` 本地 mp4 模式 + Live Trace 脉冲 |
+| [`docs/release-notes/v0.3.1.md`](docs/release-notes/v0.3.1.md) | yutto 集成 + 弹幕 client 三类 bug 回归 |
+| [`docs/release-notes/v0.4.0.md`](docs/release-notes/v0.4.0.md) | Cockpit Console 首版（弹幕侧栏 → vital readout 转型） |
+| [`docs/release-notes/v0.4.1.md`](docs/release-notes/v0.4.1.md) | iframe 跨域同步现实化（best-effort postMessage） |
+
+### `docs/superpowers/` — superpowers skill 留下的设计/计划遗产（2 文件）
+
+| 文件 | 用途 |
+|---|---|
+| [`docs/superpowers/specs/2026-05-09-danmaku-sidebar-design.md`](docs/superpowers/specs/2026-05-09-danmaku-sidebar-design.md) | v0.4.0 之前的弹幕侧栏 spec（已被 v0.4.x Cockpit 取代，作为 retro 保留） |
+| [`docs/superpowers/plans/2026-05-11-v0.4.0-danmaku-panel.md`](docs/superpowers/plans/2026-05-11-v0.4.0-danmaku-panel.md) | v0.4.0 弹幕面板实施计划 |
+
+### `demos/` — 真实端到端样例（4 BV × 7 文件 = 28 文件）
+
+每个 `demos/<bvid>/` 子目录都是一次完整跑通的结果，**7 个文件命名严格统一**（与 SKILL Step 6 桌面输出同构）：
+
+| 文件名 | 用途 |
+|---|---|
+| `meta.json` | Stage 1 输出：BV / 时长 / UP / 弹幕总数 |
+| `danmaku.json` | Stage 1 输出：全量历史弹幕（time / text / color / mode） |
+| `chunks.md` | Stage 2 输出：分块的 Markdown，Agent 在这里读着打分 |
+| `scores.json` | Stage 3 输出：8 维 0–10 分（Agent 产出） |
+| `insights.json` | Stage 3 输出：30–80 字 TL;DR + 3 条洞察（Agent 产出） |
+| `turnpoints.json` | Stage 4 输出：合并后的转折点 + 佐证弹幕 |
+| `emoekg_report.html` | Stage 5 输出：单文件离线交互报告（~1 MB） |
+
+4 个 BV 子目录（共 28 个文件 = 4 × 上述 7 个）：
+
+| 子目录 | 视频标题 | 说明 |
+|---|---|---|
+| [`demos/bv18acmz4ell/`](demos/bv18acmz4ell/) | 《万字攻略 一口气玩会亡者世界！惊变末日搜打撤 网易必玩神作》 | 15:14 / 221 弹幕 / 7 转折点（v0.1.1 首发 demo，文档主示例） |
+| [`demos/bv1arcxz5epf/`](demos/bv1arcxz5epf/) | 《可以当作春晚看的超长钩式 MC 视频》 | 长视频场景验证（自适应窗口 → 60s 切片） |
+| [`demos/bv1xcosbxenz/`](demos/bv1xcosbxenz/) | 《你真玩懂我的世界了吗？》 | v0.4.x Cockpit Console 验证样例 |
+| [`demos/bv161owbueb3/`](demos/bv161owbueb3/) | 《洛克王国一定要出这个模式啊，我要爽玩！》 | 用户场景验收样例（情感反转密集） |
+
+### `src/emoekg/` — Python 包顶层（3 文件）
+
+| 文件 | 用途 |
+|---|---|
+| [`src/emoekg/__init__.py`](src/emoekg/__init__.py) | 包根，定义 `__version__`（current = 0.4.12） |
+| [`src/emoekg/__main__.py`](src/emoekg/__main__.py) | `python -m emoekg ...` 入口（dispatch 到 `cli.main`） |
+| [`src/emoekg/cli.py`](src/emoekg/cli.py) | `emoekg {prepare, finalize, run}` 子命令分派 + 参数解析 + 进度日志 |
+
+### `src/emoekg/_lib/` — 纯函数业务层（8 文件，无 IO 副作用）
+
+| 文件 | 用途 |
+|---|---|
+| [`src/emoekg/_lib/__init__.py`](src/emoekg/_lib/__init__.py) | 包初始化 |
+| [`src/emoekg/_lib/bv_parser.py`](src/emoekg/_lib/bv_parser.py) | URL → BV 号解析；BV ↔ AV 号互转 |
+| [`src/emoekg/_lib/time_utils.py`](src/emoekg/_lib/time_utils.py) | 秒数 ↔ `HH:MM:SS` / `MM:SS` 格式化与解析 |
+| [`src/emoekg/_lib/adaptive_window.py`](src/emoekg/_lib/adaptive_window.py) | 根据视频时长自适应选 15s/30s/60s 切片窗口（目标 ~90 chunks） |
+| [`src/emoekg/_lib/plutchik.py`](src/emoekg/_lib/plutchik.py) | Plutchik 8 维情绪 schema 常量 + `validate_score_entry` 校验 |
+| [`src/emoekg/_lib/danmaku_client.py`](src/emoekg/_lib/danmaku_client.py) | bilibili-api 封装：分段 Protobuf 拼接 + 重试 + 去重 + 色值归一化 |
+| [`src/emoekg/_lib/turnpoint_algo.py`](src/emoekg/_lib/turnpoint_algo.py) | scipy `find_peaks` 峰值检测 + Jensen-Shannon 散度反转检测 + 时间簇合并 |
+| [`src/emoekg/_lib/evidence_picker.py`](src/emoekg/_lib/evidence_picker.py) | 转折点佐证弹幕采样排序（关键词 > 长度 > 时间） |
+
+### `src/emoekg/stages/` — Python 流水线 4 阶段（5 文件）
+
+| 文件 | 用途 |
+|---|---|
+| [`src/emoekg/stages/__init__.py`](src/emoekg/stages/__init__.py) | 包初始化 |
+| [`src/emoekg/stages/fetch_danmaku.py`](src/emoekg/stages/fetch_danmaku.py) | **Stage 1**：拉视频 meta + 全量历史弹幕 → `meta.json` + `danmaku.json` |
+| [`src/emoekg/stages/slice_chunks.py`](src/emoekg/stages/slice_chunks.py) | **Stage 2**：自适应切片 + 渲染 Agent prompt → `chunks.md` + 空 `scores.json` |
+| [`src/emoekg/stages/detect_turnpoints.py`](src/emoekg/stages/detect_turnpoints.py) | **Stage 4**：峰值 + 散度 + cluster merge + 佐证采样 → `turnpoints.json` |
+| [`src/emoekg/stages/render_report.py`](src/emoekg/stages/render_report.py) | **Stage 5**：Jinja2 渲染 + 内联 ECharts + 内联 `app.js` → `emoekg_report.html` |
+
+> **Stage 3（打分）没有对应的 Python 文件**——它由 AI Agent 在对话里直接做，是 emoekg 的设计核心，参见 `SKILL.md` 与 `docs/scoring_rubric.md`。
+
+### `src/emoekg/templates/` — HTML 模板 + 前端逻辑 + 第三方资源（5 文件）
+
+| 文件 | 用途 |
+|---|---|
+| [`src/emoekg/templates/__init__.py`](src/emoekg/templates/__init__.py) | 让 `templates/` 成为可被 `setuptools.package_data` 打包的目录 |
+| [`src/emoekg/templates/report.html.j2`](src/emoekg/templates/report.html.j2) | 报告主模板：Cockpit Console 布局 + CSS 变量 + 8 模块组件骨架 |
+| [`src/emoekg/templates/app.js`](src/emoekg/templates/app.js) | ECharts 渲染 + Vital Readout + 视频联动 + ResizeObserver 高度同步 |
+| [`src/emoekg/templates/chunks_prompt.md.j2`](src/emoekg/templates/chunks_prompt.md.j2) | 给 Agent 看的 `chunks.md` 模板（Stage 2 渲染用） |
+| [`src/emoekg/templates/vendor/echarts.min.js`](src/emoekg/templates/vendor/echarts.min.js) | ECharts 5.5 UMD bundle（~1 MB，**离线内联**，单文件 HTML 的关键依赖） |
+
+### `tests/` — pytest 单测套件（15 文件，194 test cases）
+
+| 文件 | 测试目标 | case 数 |
+|---|---|---|
+| [`tests/__init__.py`](tests/__init__.py) | 包初始化 | — |
+| [`tests/conftest.py`](tests/conftest.py) | pytest fixtures 共享（mock 数据 / 临时目录） | — |
+| [`tests/test_smoke.py`](tests/test_smoke.py) | import 烟测：所有模块能加载 | 2 |
+| [`tests/test_bv_parser.py`](tests/test_bv_parser.py) | `_lib.bv_parser` BV 号解析 | 20 |
+| [`tests/test_time_utils.py`](tests/test_time_utils.py) | `_lib.time_utils` 时间格式化 | 25 |
+| [`tests/test_adaptive_window.py`](tests/test_adaptive_window.py) | `_lib.adaptive_window` 窗口选择 | 19 |
+| [`tests/test_plutchik.py`](tests/test_plutchik.py) | `_lib.plutchik` schema 校验 | 23 |
+| [`tests/test_danmaku_client.py`](tests/test_danmaku_client.py) | `_lib.danmaku_client`（含 3 类历史 bug 回归） | 21 |
+| [`tests/test_evidence_picker.py`](tests/test_evidence_picker.py) | `_lib.evidence_picker` 佐证采样排序 | 10 |
+| [`tests/test_turnpoint_algo.py`](tests/test_turnpoint_algo.py) | `_lib.turnpoint_algo` 峰值/散度/合并 | 16 |
+| [`tests/test_stage1_fetch.py`](tests/test_stage1_fetch.py) | Stage 1 集成 | 6 |
+| [`tests/test_stage2_slice.py`](tests/test_stage2_slice.py) | Stage 2 集成 | 9 |
+| [`tests/test_stage4_detect.py`](tests/test_stage4_detect.py) | Stage 4 集成 | 9 |
+| [`tests/test_stage5_render.py`](tests/test_stage5_render.py) | Stage 5 集成（断言 Cockpit 关键 DOM 字符串存在） | 15 |
+| [`tests/test_cli.py`](tests/test_cli.py) | CLI 子命令端到端 | 19 |
+
+### 合计
+
+```
+根目录             5
+docs/              4
+docs/release-notes/ 5
+docs/superpowers/  2
+demos/            28  (= 4 BV × 7 文件)
+src/emoekg/        3
+src/emoekg/_lib/   8
+src/emoekg/stages/ 5
+src/emoekg/templates/ 5
+tests/            15
+─────────────────────
+合计              80   ✓ 与 `git ls-files | wc -l` 一致
+```
+
+---
+
 ## 🎨 报告设计语言
 
 - **主题**：Swiss × Editorial 暗色研究档案 → v0.4.x 升级为 **Cockpit Console 监护仪式**
@@ -429,7 +574,7 @@ python -m pytest
 | **v0.1.1** | Swiss × Editorial UI + Insights Protocol + 真实数据验证 | ✅ 已发布 |
 | **v0.2.x** | `--with-video` 本地视频模式 + iframe 双向同步尝试 | ✅ 已发布 |
 | **v0.3.x** | Vital Console 第一版 + 弹幕侧栏 + 8 维仪表读数 | ✅ 已发布 |
-| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构标准化 | ✅ 已发布（current = 0.4.12）|
+| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构标准化 + 逐文件清单 | ✅ 已发布（current = 0.4.13）|
 | v0.5.0 | 多视频对比（同一 UP / 同系列横向对照仪表盘） | 计划中 |
 | v0.5.0 | 导出情绪摘要 CSV / Markdown 表格，便于研究报告复用 | 计划中 |
 | v0.6.0 | 抖音 / YouTube 数据源适配（保持同 SKILL 接口） | 探索中 |
