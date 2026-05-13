@@ -1,27 +1,54 @@
-# User runtime outputs
+# =====================================================================
+# emoekg .gitignore
+# Layout convention: PyPA src layout — only source under src/, tests/,
+# docs/, demos/ are tracked. Everything else listed here is local-only.
+# =====================================================================
+
+# --- User runtime outputs (Step 6 desktop folders, intermediate runs)
 emoekg_*_*/
+AI情绪心电图-*/
 output/
 *.mp4
 *.flv
 
-# Python
+# --- Python build / cache
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.tox/
 .venv/
 venv/
+env/
 build/
 dist/
+wheels/
 
-# IDE
+# --- IDE / editor
 .vscode/
 .idea/
 .DS_Store
+*.swp
+*.swo
 
-# Logs
+# --- Logs / temp
 *.log
+*.tmp
+*.bak
+~$*
 
-# Brainstorm session artifacts
+# --- Brainstorm / session artifacts
 .superpowers/
+.codemaker/
+.cursor/
+.aider*
+
+# --- Defensive: stray dirs from common shell mishaps on Windows cmd
+# (e.g. `mkdir -p foo/bar` creates a literal "-p" directory)
+-p/
+-r/
+-rf/

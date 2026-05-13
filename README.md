@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.10-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.11-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -265,55 +265,73 @@ emoekg_report.html
 
 ## 📁 项目结构
 
+按 [Anthropic Agent Skills 范式](https://github.com/anthropics/courses/tree/master/tool_use) + Python [PyPA src layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/) 组织：
+
 ```
 emoekg/
-├── SKILL.md                          # Agent 契约（工作流 + Stage 3 产出要求）
-├── README.md
-├── LICENSE
+│
+├── SKILL.md                          # ★ Agent 契约（工作流 + Stage 3 产出要求 + Step 6 桌面投放）
+├── README.md                         # ★ 给用户看的（安装 + 演示 + 截图）
+├── LICENSE                           # MIT
 ├── pyproject.toml                    # 安装配置 + 依赖声明 + CLI entry point
+├── requirements.txt                  # 兼容旧 pip 流程的依赖镜像
 ├── .gitignore
 │
-├── docs/
-│   └── scoring_rubric.md             # Stage 3 打分细则（0–10 分刻度、SPARSE、Insights Protocol）
+├── docs/                             # 设计 + 历史
+│   ├── scoring_rubric.md             #   Stage 3 打分细则（0–10 刻度、SPARSE、Insights Protocol）
+│   ├── 2026-05-07-emoekg-design.md   #   原始设计 spec + §15 v0.4.x 实施回顾
+│   ├── 2026-05-07-emoekg-plan.md     #   v0.1.0 实施计划
+│   ├── CHANGELOG.md                  #   版本谱（浓缩版，每版一段）
+│   ├── release-notes/                #   单版本长 release note（按 SemVer）
+│   │   ├── README.md                 #     本目录索引 + CHANGELOG 关系说明
+│   │   ├── v0.3.0.md
+│   │   ├── v0.3.1.md
+│   │   ├── v0.4.0.md
+│   │   └── v0.4.1.md
+│   └── superpowers/                  #   superpowers skill 留下的 specs/plans 历史
+│       ├── plans/
+│       └── specs/
 │
-├── demos/                            # 真实端到端示例
+├── demos/                            # 真实端到端示例（双击即开）
 │   └── bv18acmz4ell/                 #   《万字攻略 一口气玩会亡者世界》
-│       ├── meta.json                 #   221 danmakus / 15:14
+│       ├── meta.json                 #   221 弹幕 / 15:14 时长
 │       ├── danmaku.json
 │       ├── chunks.md
 │       ├── scores.json
 │       ├── insights.json
-│       ├── turnpoints.json           #   7 merged turnpoints
+│       ├── turnpoints.json           #   7 个合并后转折点
 │       └── emoekg_report.html        #   1.1 MB 单文件报告
 │
-├── src/emoekg/
-│   ├── __init__.py
-│   ├── __main__.py                   # python -m emoekg 入口
-│   ├── cli.py                        # emoekg {prepare, finalize, run}
-│   │
-│   ├── _lib/                         # 纯函数业务层（无 IO 副作用）
-│   │   ├── bv_parser.py              #   URL / BV 号解析
-│   │   ├── time_utils.py             #   HH:MM:SS 格式化
-│   │   ├── adaptive_window.py        #   自适应窗口大小计算
-│   │   ├── plutchik.py               #   8 维情绪 schema + 校验
-│   │   ├── danmaku_client.py         #   bilibili-api 封装（重试 / 去重 / 色值归一化）
-│   │   ├── turnpoint_algo.py         #   peaks + valleys + JS 散度 + cluster merge
-│   │   └── evidence_picker.py        #   佐证弹幕采样排序
-│   │
-│   ├── stages/                       # 4 个 Python 阶段（S1/S2/S4/S5）
-│   │   ├── fetch_danmaku.py          #   Stage 1: 拉 meta + 全量弹幕
-│   │   ├── slice_chunks.py           #   Stage 2: 切片 + 渲染 prompt
-│   │   ├── detect_turnpoints.py      #   Stage 4: 转折检测 + 合并 + 佐证
-│   │   └── render_report.py          #   Stage 5: Jinja2 + 内联 ECharts
-│   │
-│   └── templates/
-│       ├── report.html.j2            # Swiss × Editorial 报告模板
-│       ├── app.js                    # ECharts 交互 / 视频联动 / 过滤搜索
-│       ├── chunks_prompt.md.j2       # 给 Agent 看的 chunks.md
-│       └── vendor/
-│           └── echarts.min.js        # ECharts 5.5 UMD（离线内联）
+├── src/                              # PyPA src layout —— 不能改名
+│   └── emoekg/                       # Python 包根（== `pip install -e .` 装出来的导入名）
+│       ├── __init__.py               #   __version__
+│       ├── __main__.py               #   `python -m emoekg` 入口
+│       ├── cli.py                    #   `emoekg {prepare, finalize, run}` 子命令分派
+│       │
+│       ├── _lib/                     #   纯函数业务层（无 IO 副作用，100% 可单测）
+│       │   ├── bv_parser.py          #     URL / BV 号解析
+│       │   ├── time_utils.py         #     HH:MM:SS 格式化
+│       │   ├── adaptive_window.py    #     自适应窗口大小计算
+│       │   ├── plutchik.py           #     8 维情绪 schema + 校验
+│       │   ├── danmaku_client.py     #     bilibili-api 封装（重试 / 去重 / 色值归一化）
+│       │   ├── turnpoint_algo.py     #     peaks + valleys + JS 散度 + cluster merge
+│       │   └── evidence_picker.py    #     佐证弹幕采样排序
+│       │
+│       ├── stages/                   #   4 个 Python 阶段（S1/S2/S4/S5）
+│       │   ├── fetch_danmaku.py      #     Stage 1: 拉 meta + 全量弹幕
+│       │   ├── slice_chunks.py       #     Stage 2: 切片 + 渲染 prompt
+│       │   ├── detect_turnpoints.py  #     Stage 4: 转折检测 + 合并 + 佐证
+│       │   └── render_report.py      #     Stage 5: Jinja2 + 内联 ECharts
+│       │
+│       └── templates/
+│           ├── report.html.j2        #   Cockpit Console 报告模板
+│           ├── app.js                #   ECharts 交互 + Vital Readout + 视频联动
+│           ├── chunks_prompt.md.j2   #   给 Agent 看的 chunks.md
+│           └── vendor/
+│               └── echarts.min.js    #   ECharts 5.5 UMD（离线内联）
 │
-└── tests/                            # 190 个单测，覆盖全链路
+└── tests/                            # 194 个单测，覆盖全链路
+    ├── conftest.py
     ├── test_smoke.py
     ├── test_bv_parser.py
     ├── test_time_utils.py
@@ -328,6 +346,12 @@ emoekg/
     ├── test_stage5_render.py
     └── test_cli.py
 ```
+
+### 命名澄清
+
+- **`src/` 不是缩写**——这是 [PyPA 推荐的 src layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/) 范式，目的是强制让测试通过 `pip install -e .` 注入的包路径导入，避免误读未安装的源码。`pyproject.toml` 的 `[tool.setuptools.packages.find]` 配置写死 `where = ["src"]`，**不能改名**。
+- **`_lib/` 前置下划线**——表示模块私有，外部不应直接 `import emoekg._lib.xxx`，而是通过 `stages/` 层调用。
+- **`docs/release-notes/` vs `docs/CHANGELOG.md`**——前者是单版本长说明（含动机 / 升级建议），后者是按版本浓缩的速查；详见 [`docs/release-notes/README.md`](docs/release-notes/README.md)。
 
 ### 架构设计
 
@@ -406,7 +430,7 @@ python -m pytest
 | **v0.1.1** | Swiss × Editorial UI + Insights Protocol + 真实数据验证 | ✅ 已发布 |
 | **v0.2.x** | `--with-video` 本地视频模式 + iframe 双向同步尝试 | ✅ 已发布 |
 | **v0.3.x** | Vital Console 第一版 + 弹幕侧栏 + 8 维仪表读数 | ✅ 已发布 |
-| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 | ✅ 已发布（current = 0.4.10）|
+| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构整理 | ✅ 已发布（current = 0.4.11）|
 | v0.5.0 | 多视频对比（同一 UP / 同系列横向对照仪表盘） | 计划中 |
 | v0.5.0 | 导出情绪摘要 CSV / Markdown 表格，便于研究报告复用 | 计划中 |
 | v0.6.0 | 抖音 / YouTube 数据源适配（保持同 SKILL 接口） | 探索中 |

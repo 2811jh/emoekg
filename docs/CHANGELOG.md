@@ -1,13 +1,21 @@
 # Changelog
 
 按 [Semver](https://semver.org/) 维护，记录每个版本的关键变更。
-当前版本：**v0.4.10**（current）。
+当前版本：**v0.4.11**（current）。
 
 ---
 
 ## v0.4.x — Cockpit Console（2026-05-11 系列）
 
 > **主题**：将报告 §02 模块从「视频 + 弹幕滚动列表」重构为「视频 + 8 维 Vital Readout 仪表盘」，建立"驾驶舱 / 监护仪"语义体系。详细设计见 [`2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md#15-v04x-实施回顾--cockpit-console2026-05-11)。
+
+### v0.4.11 — 仓库结构整理（标准范式）
+- **chore**: 清理仓库根目录碎屑——删除 `-p/`（mkdir 误用产物）、`build/`、`.pytest_cache/`、`.superpowers/`（已 ignored，但本地碎屑未清）
+- **chore**: 4 份散落的 `RELEASE_NOTES_v0XX.md` 移到 `docs/release-notes/` 并按 SemVer 重命名（`v0.3.0.md` 等）
+- **docs**: 新建 `docs/release-notes/README.md` 索引，明确与 `CHANGELOG.md` 的边界（前者长，后者短）
+- **chore**: `.gitignore` 重写——加分类注释，加 `-p/`/`-r/`/`-rf/` 防御性入口（防 mkdir 误用）、`AI情绪心电图-*/`（v0.4.10 默认输出文件夹）、`.mypy_cache/`/`.ruff_cache/`/`.coverage`/`wheels/` 等 Python 工具链遗漏项
+- **docs (README)**: 「📁 项目结构」段重写——加链接到 PyPA src layout 解释，新增「命名澄清」段说明 `src/` 不是缩写、`_lib/` 下划线含义、`docs/release-notes/` vs `CHANGELOG.md` 边界
+- **rationale**: 用户截图反馈仓库根目录看起来"乱"——`-p` 不知道是什么、release notes 散落、build 缓存到处都是；按 PyPA + Anthropic Skills 标准范式整理
 
 ### v0.4.10 — 单一文件夹收纳（refine v0.4.9）
 - **change (SKILL Step 6)**: 不再「桌面散一份 HTML」，改为**整个 working dir 改名为 `AI情绪心电图-<关键字>/`**，文件夹内额外放一份同名 `.html` 副本
