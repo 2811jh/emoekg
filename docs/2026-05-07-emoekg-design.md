@@ -452,6 +452,16 @@ def compute_window_size(duration_sec: int) -> int:
 
 ## 10. 仓库发布物清单
 
+> ⚠️ **本节为 v0.1.0 时的发布物清单，部分内容已在后续版本中演进。最新的逐文件清单见 [`README.md` §「📑 文件清单」](../README.md)。**
+>
+> 主要演进点：
+> - `requirements.txt` —— v0.4.12 删除（`pyproject.toml` 是单一依赖来源）
+> - `examples/` —— 实际命名为 `demos/`，且扩展至 4 个 BV 子目录
+> - `CHANGELOG.md` —— 实际位于 `docs/CHANGELOG.md`（不在仓库根）
+> - `docs/release-notes/` —— v0.4.11 新增子目录归档长 release note
+>
+> 本节其余内容保留为 v0.1.0 决策记录。
+
 > 本节只定义"仓库里应该有哪些文件"。实际推送 GitHub 的流程（创建 repo、配 Topics、打 tag、上传 Releases）交由 `github-ops` skill 负责执行，不在本 spec 范围内。
 
 ### 10.1 仓库元信息（交接给 github-ops）
@@ -621,7 +631,7 @@ scipy>=1.10.0
 
 ## 15. v0.4.x 实施回顾 — Cockpit Console（2026-05-11）
 
-> **Status**: Shipped (current = v0.4.8)
+> **Status**: Shipped (v0.4.x 系列，首发 v0.4.2，持续维护中——具体 patch 版本见 [`docs/CHANGELOG.md`](./CHANGELOG.md)；不在本 spec 中追踪具体 patch 号以避免文档反复 bump)
 > **Driver**: 真实使用反馈：v0.1.0 的 Swiss × Editorial 静态档案在交互上「太死」，研究员希望右侧成为可读的实时仪表，而不是滚动列表。
 
 ### 15.1 信息架构调整

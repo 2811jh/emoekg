@@ -1,13 +1,26 @@
 # Changelog
 
 按 [Semver](https://semver.org/) 维护，记录每个版本的关键变更。
-当前版本：**v0.4.13**（current）。
+当前版本：**v0.4.14**（current）。
 
 ---
 
 ## v0.4.x — Cockpit Console（2026-05-11 系列）
 
 > **主题**：将报告 §02 模块从「视频 + 弹幕滚动列表」重构为「视频 + 8 维 Vital Readout 仪表盘」，建立"驾驶舱 / 监护仪"语义体系。详细设计见 [`2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md#15-v04x-实施回顾--cockpit-console2026-05-11)。
+
+### v0.4.14 — 开发文档系统化（7 处优化）
+
+> **诊断**：旧版开发文档存在"措辞冲突 / 信息陈旧 / 缺 deprecated 标记 / 缺总入口"四类问题，本次一次清理到位。
+
+- **fix**: `scoring_rubric.md §6.7` 步骤编号与 SKILL.md 冲突 —— 改用 rubric 自己的章节号（§5 / §6），并加注释说明 "rubric §6 ≠ SKILL Step 6"，防止 Agent 误把"写洞察"理解为"做桌面投放"
+- **fix**: `release-notes/README.md` 索引中「v0.4.2 ~ v0.4.10 不再单写」改为「v0.4.2 之后」，避免每次 patch 都跟着 bump
+- **chore**: `2026-05-07-emoekg-design.md §15` 顶部 `Status: Shipped (current = v0.4.8)` 改为「v0.4.x 系列，首发 v0.4.2，patch 不在 spec 追踪」 —— 避免文档反复 bump
+- **chore**: `2026-05-07-emoekg-design.md §10` 顶部加 deprecated banner —— 标注 `requirements.txt` 已移除（v0.4.12）、`examples/` 实为 `demos/`、`CHANGELOG.md` 在 `docs/` 下；正文保留作 v0.1.0 决策留痕
+- **chore**: `2026-05-07-emoekg-plan.md` 文件头加 HISTORICAL ARCHIVE banner —— 102KB 实施计划已 100% 完成，明示接手者「不要据此做新开发决策」
+- **new**: `docs/superpowers/README.md` —— 说明本目录是 v0.4.0 之前「弹幕侧栏」方案的归档，被 v0.4.2 Cockpit 取代（决策 D7），保留以供"为什么不那样做"溯源
+- **new**: `docs/README.md` —— `docs/` 总入口（meta-doc），按「我想做什么」给读者导航；附文档生命周期约定表（active / frozen / archived）与「新增文档归属规则」
+- **docs (主 README)**: 同步「📑 文件清单」—— `docs/` 分组 4→5、`docs/superpowers/` 分组 2→3、合计 80→82，与 `git ls-files | wc -l` 重新对账
 
 ### v0.4.13 — README 加「📑 文件清单」逐文件说明
 - **docs (README)**: 新增 `## 📑 文件清单` 模块，按目录分组覆盖**全部 80 个 git tracked 文件**

@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.13-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.14-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -382,13 +382,14 @@ CLI / Stages（编排层）  ──依赖──→  _lib（纯业务逻辑）  �
 | [`README.md`](README.md) | 主入口（安装 / 演示 / 命令 / 项目结构 / 本文件清单） | 终端用户 / GitHub 主页自动渲染 |
 | [`SKILL.md`](SKILL.md) | **Agent 契约**（工作流 + Stage 3 打分规则 + Step 6 桌面投放规则） | AI Agent / `npx skills add` 装载入口 |
 
-### `docs/` — 设计 + 历史档案（4 文件）
+### `docs/` — 设计 + 历史档案（5 文件）
 
 | 文件 | 用途 | 谁会读它 |
 |---|---|---|
+| [`docs/README.md`](docs/README.md) | **`docs/` 总入口**（meta-doc）—— 按"我想……"路径找文档 + 文档生命周期约定（active / frozen / archived） | 接手开发者第一次进 `docs/` 时 |
 | [`docs/2026-05-07-emoekg-design.md`](docs/2026-05-07-emoekg-design.md) | v0.1.0 原始设计 spec + §15 v0.4.x Cockpit Console 实施回顾（D1–D12 决策） | 接手开发者 / 想了解决策来由的 |
-| [`docs/2026-05-07-emoekg-plan.md`](docs/2026-05-07-emoekg-plan.md) | v0.1.0 完整实施计划（Task 1 → Task 15 拆分） | 历史档案 |
-| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **浓缩版本谱**（v0.1.0 → v0.4.12，每版一段） | 想快速了解迭代脉络的 |
+| [`docs/2026-05-07-emoekg-plan.md`](docs/2026-05-07-emoekg-plan.md) | v0.1.0 完整实施计划（Task 1 → Task 15 拆分）— **HISTORICAL ARCHIVE** | 历史档案 |
+| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | **浓缩版本谱**（v0.1.0 → current，每版一段） | 想快速了解迭代脉络的 |
 | [`docs/scoring_rubric.md`](docs/scoring_rubric.md) | Stage 3 打分细则（0–10 刻度 / SPARSE 规则 / Insights Protocol） | **AI Agent 必读** |
 
 ### `docs/release-notes/` — 单版本长 release note（5 文件）
@@ -401,10 +402,11 @@ CLI / Stages（编排层）  ──依赖──→  _lib（纯业务逻辑）  �
 | [`docs/release-notes/v0.4.0.md`](docs/release-notes/v0.4.0.md) | Cockpit Console 首版（弹幕侧栏 → vital readout 转型） |
 | [`docs/release-notes/v0.4.1.md`](docs/release-notes/v0.4.1.md) | iframe 跨域同步现实化（best-effort postMessage） |
 
-### `docs/superpowers/` — superpowers skill 留下的设计/计划遗产（2 文件）
+### `docs/superpowers/` — superpowers skill 留下的设计/计划遗产（3 文件）
 
 | 文件 | 用途 |
 |---|---|
+| [`docs/superpowers/README.md`](docs/superpowers/README.md) | **本目录性质说明**——v0.4.0 之前「弹幕侧栏」方案的归档，标明已被 v0.4.2 Cockpit Console 取代 |
 | [`docs/superpowers/specs/2026-05-09-danmaku-sidebar-design.md`](docs/superpowers/specs/2026-05-09-danmaku-sidebar-design.md) | v0.4.0 之前的弹幕侧栏 spec（已被 v0.4.x Cockpit 取代，作为 retro 保留） |
 | [`docs/superpowers/plans/2026-05-11-v0.4.0-danmaku-panel.md`](docs/superpowers/plans/2026-05-11-v0.4.0-danmaku-panel.md) | v0.4.0 弹幕面板实施计划 |
 
@@ -498,9 +500,9 @@ CLI / Stages（编排层）  ──依赖──→  _lib（纯业务逻辑）  �
 
 ```
 根目录             5
-docs/              4
+docs/              5
 docs/release-notes/ 5
-docs/superpowers/  2
+docs/superpowers/  3
 demos/            28  (= 4 BV × 7 文件)
 src/emoekg/        3
 src/emoekg/_lib/   8
@@ -508,7 +510,7 @@ src/emoekg/stages/ 5
 src/emoekg/templates/ 5
 tests/            15
 ─────────────────────
-合计              80   ✓ 与 `git ls-files | wc -l` 一致
+合计              82   ✓ 与 `git ls-files | wc -l` 一致
 ```
 
 ---
@@ -574,7 +576,7 @@ python -m pytest
 | **v0.1.1** | Swiss × Editorial UI + Insights Protocol + 真实数据验证 | ✅ 已发布 |
 | **v0.2.x** | `--with-video` 本地视频模式 + iframe 双向同步尝试 | ✅ 已发布 |
 | **v0.3.x** | Vital Console 第一版 + 弹幕侧栏 + 8 维仪表读数 | ✅ 已发布 |
-| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构标准化 + 逐文件清单 | ✅ 已发布（current = 0.4.13）|
+| **v0.4.x** | Cockpit Console 重构（`vital-stats-grid` / `headline.mono` / hint-pulse / 基线锁定） + 桌面默认输出 + 单一文件夹友好命名 + 仓库结构标准化 + 逐文件清单 + 开发文档系统化 | ✅ 已发布（current = 0.4.14）|
 | v0.5.0 | 多视频对比（同一 UP / 同系列横向对照仪表盘） | 计划中 |
 | v0.5.0 | 导出情绪摘要 CSV / Markdown 表格，便于研究报告复用 | 计划中 |
 | v0.6.0 | 抖音 / YouTube 数据源适配（保持同 SKILL 接口） | 探索中 |

@@ -15,7 +15,7 @@
 | v0.3.1 | yutto 集成 + 弹幕 client bug 回归 | [`v0.3.1.md`](./v0.3.1.md) |
 | v0.3.0 | `--with-video` 本地 mp4 模式 + Live Trace 脉冲 | [`v0.3.0.md`](./v0.3.0.md) |
 
-> v0.4.2 之后的小版本（v0.4.2 ~ v0.4.10）只在 [`docs/CHANGELOG.md`](../CHANGELOG.md) 维护，不再每版单写长 release note，迭代节奏太快不值得。
+> v0.4.2 之后所有 patch 版本（v0.4.2 ~ current）只在 [`docs/CHANGELOG.md`](../CHANGELOG.md) 维护，不再每版单写长 release note——v0.4.x 系列迭代节奏太快（多为 UI polish 与 SKILL 契约调整），逐版写长 note 信噪比太低。重大功能版本（v0.5.0 / v0.6.0 等）会恢复单独写。
 
 ## 命名规范
 

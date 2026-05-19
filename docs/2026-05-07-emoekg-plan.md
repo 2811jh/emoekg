@@ -1,5 +1,16 @@
 # emoekg Implementation Plan
 
+> ⚠️ **HISTORICAL ARCHIVE — DO NOT EDIT**
+>
+> 本文件是 emoekg **v0.1.0** 的实施计划（2026-05-07 立项），所有 Task 1–15 已于 2026-05-08 全部完成并发布。保留作为决策与拆分过程的留痕。
+>
+> - 想了解**最新版本路线 / 已发版本变更** → 看 [`docs/CHANGELOG.md`](./CHANGELOG.md)
+> - 想了解**当前架构** → 看 [`docs/2026-05-07-emoekg-design.md` §15](./2026-05-07-emoekg-design.md) v0.4.x 实施回顾
+> - 想看**仓库每个文件的用途** → 看 [`README.md` §「📑 文件清单」](../README.md)
+> - 不要根据本文件「文件路径 / 命名 / 依赖」做开发决策，部分内容（如 `requirements.txt`、`examples/`）已在后续版本中被替换或移除
+
+---
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 从 0 到 1 实现 emoekg skill v0.1.0 —— 把 B 站视频弹幕数据转成单文件 HTML 情绪心电图报告。

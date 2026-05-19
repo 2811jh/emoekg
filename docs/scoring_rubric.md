@@ -215,11 +215,15 @@
 ### 6.7 完成后
 
 ```
-1. 写好 scores.json     ← Step 3 打分
-2. 写好 insights.json   ← Step 6 洞察
+1. 写好 scores.json     ← 本文件 §1–§5（打分）
+2. 写好 insights.json   ← 本文件 §6（洞察）
 3. 运行 emoekg finalize -o <working_dir>
 4. 检查 emoekg_report.html 的 Hero 区是否包含你的 TL;DR + 三条 insight
+5. 按 SKILL.md Step 6 把 working dir 改名为 `AI情绪心电图-<关键字>/`
+   并放入同名 HTML 副本（桌面投放）
 ```
 
 如果 Hero 区没出现——大概率是 `insights.json` 结构错了（`summary` 为空或 JSON 解析失败）。
 回去检查 §6.2。
+
+> **章节编号说明**：本文档（rubric）的 §5 / §6 是**打分**和**洞察**两个产出，归属 SKILL.md 的 **Step 3**（不要把 rubric §6 误读为 SKILL Step 6 — SKILL Step 6 是桌面投放，发生在 finalize 之后）。
