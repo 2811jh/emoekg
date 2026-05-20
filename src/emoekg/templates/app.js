@@ -337,7 +337,9 @@ function renderChart() {
     itemStyle: {
       color: ACC, borderColor: SURF_1, borderWidth: 1.5
     },
-    symbol: tp.direction === 'up' ? 'triangle' : 'pin',
+    // 全部用三角形：peak / shift 朝上，valley 朝下；不再用 pin（之前的"空矩形"是它）
+    symbol: 'triangle',
+    symbolRotate: tp.type === 'valley' ? 180 : 0,
     symbolSize: 12,
     label: {show: false},
     // Hover feedback — glow + scale, tells the researcher the dot is clickable.
@@ -1295,6 +1297,431 @@ function bindBilibiliPostMessage() {
   });
 }
 
+// ========================================================================
+// §02 v0.5 — VARIANT SWITCHER + 4 NEW MODULES
+// ------------------------------------------------------------------------
+// 1) variant switcher: top-right tab strip flips body[data-variant=A|B|C].
+//    Persists to localStorage. On flip, ECharts is resized and the SVG-ish
+//    HTML modules below are re-rendered (their layout is percentage-based
+//    but heights/aspect change between variants).
+// 2) Frame Scale (HUD timeline strip, B/C only) — quick-glance time axis
+//    with turnpoint triangles.
+// 3) Emotion Tape — 8 horizontal lanes (one per Plutchik dim) over the full
+//    duration; block height + opacity dual-encode the score.
+// 4) Chunks × Dims Heatmap (Variant C only) — dense 8×N matrix; cell
+//    saturation = score. Same data as Tape, different reading metaphor.
+// 5) Key Moments — 8 turnpoint cards (4×2 grid in A/B; 2-up compact rows
+//    in C) with mini 8-dim bars + one evidence danmaku.
+// ========================================================================
+
+function setupVariantSwitcher() {
+  const stored = (() => {
+    try { return localStorage.getItem('emoekg-variant'); } catch { return null; }
+  })();
+  const initial = (stored === 'A' || stored === 'B' || stored === 'C' || stored === 'D') ? stored : 'A';
+  setVariant(initial);
+  document.querySelectorAll('.vs-btn[data-set-variant]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setVariant(btn.dataset.setVariant);
+      try { localStorage.setItem('emoekg-variant', btn.dataset.setVariant); } catch {}
+    });
+  });
+  // Keyboard shortcut: 1 / 2 / 3 / 4 swap variants
+  document.addEventListener('keydown', e => {
+    if (e.target && /input|textarea/i.test(e.target.tagName)) return;
+    if (['1','2','3','4'].includes(e.key)) {
+      const v = {1:'A', 2:'B', 3:'C', 4:'D'}[e.key];
+      setVariant(v);
+      try { localStorage.setItem('emoekg-variant', v); } catch {}
+    }
+  });
+}
+
+function setVariant(v) {
+  document.body.dataset.variant = v;
+  document.querySelectorAll('.vs-btn[data-set-variant]').forEach(b => {
+    const isActive = b.dataset.setVariant === v;
+    b.classList.toggle('is-active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  // ECharts honors its outer container only; resize after the DOM settles
+  if (chart) {
+    requestAnimationFrame(() => {
+      try {
+        // D 模式：隐藏 ECharts 内置 splitLine（横/竖网格静止线，与心电图纸 background
+        // 网格的滚动动画冲突），让心电图纸网格成为唯一可见网格。
+        // 同时给 series.lineStyle 加 shadowBlur 让折线监护仪式发光 —— 这种发光
+        // 仅作用于线本身，不影响 legend（避免之前整体 CSS filter 把 legend 也 glow）。
+        const isD = v === 'D';
+        const opt = chart.getOption();
+        const series = (opt.series || []).map(s => ({
+          ...s,
+          lineStyle: {
+            ...(s.lineStyle || {}),
+            shadowBlur: isD ? 6 : 0,
+            shadowColor: isD ? 'rgba(235, 94, 40, 0.55)' : 'transparent',
+          },
+        }));
+        // 注意用数组 wrap 强制 merge 到所有 axis（emoekg 只用 1 条 yAxis，单 obj 在
+        // 某些 ECharts 版本下 merge 不可靠，数组形式最稳）。
+        chart.setOption({
+          xAxis: [{ splitLine: { show: !isD } }],
+          yAxis: [{ splitLine: { show: !isD } }],
+          series,
+        });
+        chart.resize();
+      } catch (e) { console && console.warn && console.warn('setVariant failed', e); }
+    });
+  }
+}
+
+function _chooseTickInterval(durSec) {
+  // Aim for 6–8 evenly spaced ticks across the full duration
+  const target = 7;
+  const raw = durSec / target;
+  const steps = [15, 30, 60, 120, 180, 300, 450, 600, 900, 1200, 1800];
+  for (const s of steps) if (s >= raw * 0.7) return s;
+  return 1800;
+}
+
+function _fmtTickLabel(sec) {
+  // Drop leading "00:" for HUD-style compactness when video <1h
+  return fmtHMS(sec).replace(/^00:/, '');
+}
+
+function renderFrameScale() {
+  const root = $('frame-scale');
+  if (!root) return;
+  const dur = META.duration_sec || 1;
+  let html = '<div class="frame-scale-baseline"></div>';
+  const tickEvery = _chooseTickInterval(dur);
+  for (let t = 0; t <= dur; t += tickEvery) {
+    const pct = (t / dur) * 100;
+    html += `<span class="frame-scale-tick" style="left:${pct}%"><span class="label">${_fmtTickLabel(t)}</span></span>`;
+  }
+  TURNPOINTS.forEach(tp => {
+    const pct = (tp.time_start / dur) * 100;
+    const titleTxt = `${tp.type.toUpperCase()} · ${DIM_LABEL[tp.main_dimension]} · ${fmtHMS(tp.time_start)}\n${tp.description || ''}`;
+    html += `<span class="frame-scale-tp" data-kind="${tp.type}" data-seek="${tp.time_start}" data-tp-id="${tp.turnpoint_id}" style="left:${pct}%" title="${escapeHtml(titleTxt)}"></span>`;
+  });
+  root.innerHTML = html;
+  root.addEventListener('click', e => {
+    const t = e.target.closest('[data-seek]');
+    if (t) {
+      seekAll(parseFloat(t.dataset.seek));
+      if (t.dataset.tpId) scrollToTP(t.dataset.tpId);
+    }
+  });
+}
+
+// D-only: 在 ECG 画布上渲染 turnpoint Ping (圆环扩散动画 + 中心点)
+// 横向位置 = time_start / duration；纵向位置 = chunk argmax 维度的强度（高分在上）
+function renderEcgPings() {
+  const wrap = document.querySelector('.ecg-canvas-box');
+  if (!wrap || !TURNPOINTS.length) return;
+  // 清掉旧的，避免重复挂
+  wrap.querySelectorAll('.ecg-ping').forEach(el => el.remove());
+  const dur = META.duration_sec || 1;
+  TURNPOINTS.forEach((tp, idx) => {
+    const ping = document.createElement('span');
+    ping.className = 'ecg-ping';
+    ping.dataset.kind = tp.type;
+    ping.dataset.seek = tp.time_start;
+    if (tp.turnpoint_id) ping.dataset.tpId = tp.turnpoint_id;
+    // X：时间百分比
+    const xPct = (tp.time_start / dur) * 100;
+    // Y：用该 chunk 8 维 argmax 的强度决定纵向位置（高分上、低分下，留 15-85% 安全区）
+    const chunk = (typeof chunkScoreAt === 'function') ? (chunkScoreAt(tp.time_start) || {}) : {};
+    let topVal = 0;
+    DIMS.forEach(d => { const v = chunk[d] || 0; if (v > topVal) topVal = v; });
+    const yPct = 18 + (1 - topVal / 10) * 64;  // 18% 顶 → 82% 底
+    ping.style.left = `${xPct.toFixed(2)}%`;
+    ping.style.top = `${yPct.toFixed(2)}%`;
+    // 错开 ring 扩散节奏，看起来像多个心跳依次跳
+    ping.style.setProperty('--ping-delay', `${(idx * 0.27).toFixed(2)}s`);
+    ping.title = `${tp.type.toUpperCase()} · ${DIM_LABEL[tp.main_dimension] || ''} · ${fmtHMS(tp.time_start)}\n${tp.description || ''}`;
+    wrap.appendChild(ping);
+  });
+  // 点击 ping 跳转视频
+  wrap.addEventListener('click', e => {
+    const p = e.target.closest('.ecg-ping');
+    if (p) {
+      seekAll(parseFloat(p.dataset.seek));
+      if (p.dataset.tpId) scrollToTP(p.dataset.tpId);
+    }
+  });
+}
+
+function renderEmotionTape() {
+  const root = $('emotion-tape');
+  if (!root || !SCORES.length) return;
+  const dur = META.duration_sec || 1;
+
+  // Row 0 — turnpoint marker strip (spans the timeline column only)
+  let html = `<div></div><div class="et-tp-row">`;
+  TURNPOINTS.forEach(tp => {
+    const pct = (tp.time_start / dur) * 100;
+    const titleTxt = `${tp.type.toUpperCase()} · ${DIM_LABEL[tp.main_dimension]} · ${fmtHMS(tp.time_start)}\n${tp.description || ''}`;
+    html += `<span class="et-tp-mark" data-kind="${tp.type}" data-seek="${tp.time_start}" data-tp-id="${tp.turnpoint_id}" style="left:${pct}%" title="${escapeHtml(titleTxt)}"></span>`;
+  });
+  html += `</div>`;
+
+  // 8 lanes — one per Plutchik dimension (display order: pos→neg)
+  const LANE_ORDER = ['joy','anticipation','surprise','trust','fear','sadness','disgust','anger'];
+  LANE_ORDER.forEach(dim => {
+    html += `<div class="et-lane-name" data-dim="${dim}"><span class="zh">${DIM_LABEL[dim]}</span><span>${dim}</span></div>`;
+    html += `<div class="et-lane" data-dim="${dim}"><div class="et-lane-track">`;
+    SCORES.forEach(s => {
+      const v = s[dim] || 0;
+      if (v <= 0) return;
+      const startPct = (s.time_start / dur) * 100;
+      const endPct = (s.time_end / dur) * 100;
+      const widthPct = Math.max(0.3, endPct - startPct);
+      const heightPct = (v / 10) * 100;
+      const opacity = 0.32 + (v / 10) * 0.68;
+      const tip = `${DIM_LABEL[dim]} ${v}/10 @ ${fmtHMS(s.time_start)}\n${s.note || ''}`;
+      html += `<span class="et-block" data-seek="${s.time_start}" title="${escapeHtml(tip)}"
+        style="left:${startPct}%;width:${widthPct}%;height:${heightPct}%;opacity:${opacity}"></span>`;
+    });
+    html += `</div></div>`;
+  });
+
+  // Bottom — time axis (under the lanes column only)
+  html += `<div></div><div class="et-axis">`;
+  const tickEvery = _chooseTickInterval(dur);
+  for (let t = 0; t <= dur; t += tickEvery) {
+    const pct = (t / dur) * 100;
+    html += `<span class="et-axis-tick" style="left:${pct}%"><span class="lbl">${_fmtTickLabel(t)}</span></span>`;
+  }
+  html += `</div>`;
+
+  root.innerHTML = html;
+
+  // Click any block / tp-mark → seek video
+  root.addEventListener('click', e => {
+    const t = e.target.closest('[data-seek]');
+    if (t) {
+      seekAll(parseFloat(t.dataset.seek));
+      if (t.dataset.tpId) scrollToTP(t.dataset.tpId);
+    }
+  });
+
+  // Hover lane label → focus that dimension (dim others)
+  root.querySelectorAll('.et-lane-name').forEach(label => {
+    label.addEventListener('mouseenter', () => {
+      const dim = label.dataset.dim;
+      root.querySelectorAll('.et-lane').forEach(l => {
+        l.classList.toggle('is-dim', l.dataset.dim !== dim);
+      });
+    });
+    label.addEventListener('mouseleave', () => {
+      root.querySelectorAll('.et-lane').forEach(l => l.classList.remove('is-dim'));
+    });
+  });
+}
+
+function renderChunksHeatmap() {
+  const root = $('chunks-heatmap');
+  if (!root || !SCORES.length) return;
+  const dur = META.duration_sec || 1;
+  const LANE_ORDER = ['joy','anticipation','surprise','trust','fear','sadness','disgust','anger'];
+
+  let html = '';
+  LANE_ORDER.forEach(dim => {
+    html += `<div class="ch-row" data-dim="${dim}">`;
+    html += `<div class="ch-row-name"><span class="zh">${DIM_LABEL[dim]}</span><span>${dim}</span></div>`;
+    html += `<div class="ch-cells">`;
+    SCORES.forEach(s => {
+      const v = s[dim] || 0;
+      const opacity = v <= 0 ? 0.05 : 0.18 + (v / 10) * 0.82;
+      const tip = `${DIM_LABEL[dim]} ${v}/10 @ ${fmtHMS(s.time_start)} — ${s.note || ''}`;
+      html += `<span class="ch-cell" data-seek="${s.time_start}" title="${escapeHtml(tip)}" style="opacity:${opacity}"></span>`;
+    });
+    html += `</div></div>`;
+  });
+  // Time axis
+  html += `<div></div><div class="ch-axis">`;
+  const tickEvery = _chooseTickInterval(dur);
+  for (let t = 0; t <= dur; t += tickEvery) {
+    const pct = (t / dur) * 100;
+    html += `<span class="ch-axis-tick" style="left:${pct}%"><span class="lbl">${_fmtTickLabel(t)}</span></span>`;
+  }
+  html += `</div>`;
+
+  root.innerHTML = html;
+  root.addEventListener('click', e => {
+    const t = e.target.closest('[data-seek]');
+    if (t) seekAll(parseFloat(t.dataset.seek));
+  });
+}
+
+function _pickKeyMomentDanmaku(tp) {
+  if (tp.evidence_danmakus && tp.evidence_danmakus.length > 0) {
+    return tp.evidence_danmakus[0];
+  }
+  // fallback: nearest danmaku within ±10s window
+  for (const dm of DANMAKUS) {
+    if (dm.time >= tp.time_start - 10 && dm.time <= tp.time_start + 10) return dm;
+  }
+  return null;
+}
+
+function renderKeyMoments() {
+  const root = $('key-moments');
+  if (!root || !TURNPOINTS.length) return;
+  const TYPE_BADGE = {peak: '峰值 ▲', valley: '谷值 ▼', shift: '反转 ↔'};
+
+  // Take first 8 turnpoints (Stage 4 sorts by time after merge)
+  const tps = TURNPOINTS.slice(0, 8);
+  root.innerHTML = tps.map((tp, i) => {
+    const idx = String(i + 1).padStart(2, '0');
+    const chunk = chunkScoreAt(tp.time_start) || {};
+    // 「主导情绪」用 chunk 实际 8 维 argmax，避免 stage4 的 main_dimension
+    // 在情绪同质化视频里恒为 joy 导致每张卡都显示一样
+    let topDim = DIMS[0];
+    let topScore = chunk[topDim] || 0;
+    DIMS.forEach(d => {
+      const v = chunk[d] || 0;
+      if (v > topScore) { topDim = d; topScore = v; }
+    });
+    const dim = topDim;
+    const score = topScore;
+    // stage4 的 main_dimension 移到副标做"事件维度"
+    const eventDim = tp.main_dimension && tp.main_dimension !== topDim
+      ? `事件维度·${DIM_LABEL[tp.main_dimension]}`
+      : null;
+    const dimsBars = DIMS.map(d => {
+      const v = chunk[d] || 0;
+      return `<span class="km-dim" style="--km-dim-h:${(v/10)*100}%;--km-dim-color:${CHART_COLORS[d]}" title="${DIM_LABEL[d]} ${v}/10"></span>`;
+    }).join('');
+    const ev = _pickKeyMomentDanmaku(tp);
+    const quoteHtml = ev
+      ? `<div class="km-quote"><span class="t">${fmtHMS(ev.time)}</span>${escapeHtml(ev.text)}</div>`
+      : '';
+
+    return `<article class="km-card" data-kind="${tp.type}" data-seek="${tp.time_start}" data-tp-id="${tp.turnpoint_id}" title="${escapeHtml(tp.description || '')}">
+      <span class="km-bg-corner"></span>
+      <div class="km-head">
+        <span class="km-id">时刻 ${idx}</span>
+        <span class="km-badge">${TYPE_BADGE[tp.type] || tp.type}</span>
+        <span class="km-time">${fmtHMS(tp.time_start)}</span>
+      </div>
+      <div class="km-dom">
+        <span class="km-dom-zh">${DIM_LABEL[dim]}</span>
+        <span class="km-dom-en">${dim}</span>
+        <span class="km-dom-score">${score}<span class="max">/10</span></span>
+      </div>
+      <div class="km-dims">${dimsBars}</div>
+      ${quoteHtml}
+    </article>`;
+  }).join('');
+
+  root.addEventListener('click', e => {
+    const card = e.target.closest('.km-card');
+    if (!card) return;
+    seekAll(parseFloat(card.dataset.seek));
+    if (card.dataset.tpId) scrollToTP(card.dataset.tpId);
+  });
+}
+
+// ------------------------------------------------------------------------
+// 情绪共生分析 — Pearson 互相关矩阵 + Plutchik 对立对验证（Variant D 专属）
+// ------------------------------------------------------------------------
+function _computeCorrelationMatrix() {
+  // Drop SPARSE chunks so they don't drag every dim toward zero
+  const valid = SCORES.filter(s => (s.n_danmaku || 0) >= 3);
+  const n = valid.length;
+  if (n < 4) return null;
+  const means = {}, stds = {};
+  DIMS.forEach(d => {
+    const vs = valid.map(c => c[d] || 0);
+    const m = vs.reduce((a, b) => a + b, 0) / n;
+    const sq = vs.reduce((a, b) => a + (b - m) ** 2, 0) / n;
+    means[d] = m;
+    stds[d]  = Math.sqrt(sq);
+  });
+  const M = {};
+  DIMS.forEach(d1 => {
+    M[d1] = {};
+    DIMS.forEach(d2 => {
+      if (stds[d1] === 0 || stds[d2] === 0) { M[d1][d2] = 0; return; }
+      let cov = 0;
+      valid.forEach(c => {
+        cov += ((c[d1] || 0) - means[d1]) * ((c[d2] || 0) - means[d2]);
+      });
+      cov /= n;
+      M[d1][d2] = cov / (stds[d1] * stds[d2]);
+    });
+  });
+  return M;
+}
+
+function _corrCellBg(r, isDiag) {
+  if (isDiag) return 'rgba(255,255,255,0.04)';
+  // r > 0 → warm orange (acc), r < 0 → cool blue
+  const a = Math.min(1, Math.abs(r));
+  if (r > 0) return `rgba(235, 94, 40, ${(a * 0.85).toFixed(3)})`;
+  return `rgba(74, 130, 200, ${(a * 0.85).toFixed(3)})`;
+}
+
+function renderEmotionCorrMatrix() {
+  const root = $('emotion-corr');
+  if (!root || !SCORES.length) return;
+  const M = _computeCorrelationMatrix();
+  if (!M) {
+    root.innerHTML = '<div class="ec-empty">数据不足，无法计算相关矩阵（需至少 4 个非 SPARSE 段）</div>';
+    return;
+  }
+  // Display order: positive emotions first then negatives (visual grouping)
+  const ORDER = ['joy', 'anticipation', 'surprise', 'trust', 'fear', 'sadness', 'disgust', 'anger'];
+  let html = '<div class="ec-grid">';
+  // Header row: empty corner + 8 dim names
+  html += '<div class="ec-corner"></div>';
+  ORDER.forEach(d => {
+    html += `<div class="ec-head ec-head-x"><span class="zh">${DIM_LABEL[d]}</span><span>${d}</span></div>`;
+  });
+  // Data rows
+  ORDER.forEach(d1 => {
+    html += `<div class="ec-head ec-head-y"><span class="zh">${DIM_LABEL[d1]}</span><span>${d1}</span></div>`;
+    ORDER.forEach(d2 => {
+      const r = M[d1][d2];
+      const isDiag = d1 === d2;
+      const bg = _corrCellBg(r, isDiag);
+      const label = isDiag ? '—' : (r > 0 ? '+' : '') + r.toFixed(2);
+      const tip = `${DIM_LABEL[d1]} × ${DIM_LABEL[d2]}\nr = ${r.toFixed(3)}` +
+        (isDiag ? '' : `\n${r > 0.3 ? '强同步' : r > 0.1 ? '弱同步' : r > -0.1 ? '无关' : r > -0.3 ? '弱对立' : '强对立'}`);
+      html += `<div class="ec-cell${isDiag ? ' ec-diag' : ''}" style="background:${bg}" title="${escapeHtml(tip)}">${label}</div>`;
+    });
+  });
+  html += '</div>';
+
+  // Plutchik opposite-pair verification panel
+  const PAIRS = [
+    ['joy', 'sadness', '喜悦 ↔ 悲伤'],
+    ['trust', 'disgust', '信任 ↔ 厌恶'],
+    ['fear', 'anger', '恐惧 ↔ 愤怒'],
+    ['surprise', 'anticipation', '惊奇 ↔ 期待'],
+  ];
+  html += '<div class="ec-pairs">';
+  html += '<div class="ec-pairs-head"><b>Plutchik 对立对验证</b>理论应负相关 · 检验本片是否符合</div>';
+  PAIRS.forEach(([a, b, label]) => {
+    const r = M[a][b];
+    let tag, cls;
+    if (r <= -0.3) { tag = '强对立 · 验证'; cls = 'ec-pair-strong'; }
+    else if (r <= -0.1) { tag = '弱对立'; cls = 'ec-pair-weak'; }
+    else if (r < 0.1)  { tag = '中性'; cls = 'ec-pair-neutral'; }
+    else { tag = '反常共生'; cls = 'ec-pair-anomaly'; }
+    html += `<div class="ec-pair ${cls}">
+      <span class="ec-pair-label">${label}</span>
+      <span class="ec-pair-r">${(r > 0 ? '+' : '') + r.toFixed(2)}</span>
+      <span class="ec-pair-tag">${tag}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  root.innerHTML = html;
+}
+
 // ---------- bootstrap ----------
 mountVideo();
 if (SCORES.length > 0) {
@@ -1307,6 +1734,19 @@ renderTurnpoints();
 mountPanel();
 if (SCORES.length > 0) renderVitalStats();
 renderLegend();
+
+// §02 v0.5 — variant switcher + new modules
+setupVariantSwitcher();
+if (SCORES.length > 0) {
+  renderFrameScale();
+  renderEmotionTape();
+  renderChunksHeatmap();
+  renderEmotionCorrMatrix();
+}
+if (TURNPOINTS && TURNPOINTS.length > 0) {
+  renderKeyMoments();
+  // renderEcgPings();  // 已弃用：仅保留 ECharts 三角形 markPoint，不显示 ping 圆环
+}
 
 // bidirectional sync (local video mode only — iframe mode can't read back time)
 if (videoApi && videoApi.onTick) {
