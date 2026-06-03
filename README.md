@@ -4,7 +4,7 @@
 
 一个 [Agent Skills](https://github.com/anthropics/courses/tree/master/tool_use) 格式的 AI 助手技能——**AI Agent 在对话里直接按 Plutchik 八维情绪打分**，不走外部 LLM API，不要一行提示工程。适用于 Codex / CodeMaker / Claude Code 这类支持工具调用的对话环境，也可以手动当 CLI 用。
 
-![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.4.14-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![status](https://img.shields.io/badge/status-beta-blue) ![version](https://img.shields.io/badge/version-0.5.0-EB5E28) ![python](https://img.shields.io/badge/python-3.10%2B-blue) ![tests](https://img.shields.io/badge/tests-194%20passing-brightgreen) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 📺 **Live Demo**：[demos/bv18acmz4ell/emoekg_report.html](demos/bv18acmz4ell/emoekg_report.html)（clone 后双击即开，完全离线）
 
@@ -39,13 +39,24 @@ npx skills add 2811jh/emoekg
 
 ### 第 4 步：安装 Python 依赖
 
-继续在命令行中执行：
+继续在命令行中执行（先 cd 进 skill 目录，再 pip install）：
 
 ```bash
+cd %USERPROFILE%\.agents\skills\emoekg
 pip install -e .
 ```
 
 > ✅ 全部完成！现在可以在 AI 助手中使用 emoekg 了。
+
+### 🔄 更新到最新版
+
+如果你之前已经安装过，执行以下命令更新：
+
+```bash
+cd %USERPROFILE%\.agents\skills\emoekg
+git pull
+pip install -e .
+```
 
 ### 可选：本地视频模式（双向同步心电图 ↔ 视频进度）
 
