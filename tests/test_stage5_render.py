@@ -324,3 +324,60 @@ def test_render_preserves_dm_index_in_turnpoints(tmp_path):
     ed = tps[0]["evidence_danmakus"][0]
     assert "dm_index" in ed, "dm_index missing — Stage 4 → Stage 5 regression"
     assert ed["dm_index"] == 0
+
+
+def test_stage5_injects_danmaku_labels(tmp_path):
+    import json
+    from emoekg.stages import render_report
+
+    (tmp_path / "meta.json").write_text(json.dumps(
+        {"bvid": "BV1x", "title": "t", "up": "u",
+         "duration_sec": 20, "view_count": 0, "cid": 1, "pubdate": 0}
+    ), encoding="utf-8")
+    (tmp_path / "scores.json").write_text(json.dumps([
+        {"chunk_id": "C001", "time_start": 0, "time_end": 5, "n_danmaku": 1,
+         "joy": 3, "trust": 0, "fear": 0, "surprise": 0, "sadness": 0,
+         "disgust": 0, "anger": 0, "anticipation": 0, "note": "x"}
+    ]), encoding="utf-8")
+    (tmp_path / "turnpoints.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "danmaku.json").write_text(json.dumps([
+        {"time": 1.0, "text": "a", "mode": 1, "color": 0, "fontsize": 25, "user_hash": "h1"},
+    ]), encoding="utf-8")
+    (tmp_path / "insights.json").write_text(json.dumps({"summary": "", "insights": []}), encoding="utf-8")
+    (tmp_path / "danmaku_labels.json").write_text(json.dumps([
+        {"idx": 0, "dim": "disgust"}
+    ]), encoding="utf-8")
+
+    render_report.run(tmp_path)
+
+    html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+    assert 'id="data-danmaku-labels"' in html
+    assert "disgust" in html
+
+
+
+def test_stage5_renders_without_labels_file(tmp_path):
+    """Backward compat: missing danmaku_labels.json must not break rendering."""
+    import json
+    from emoekg.stages import render_report
+
+    (tmp_path / "meta.json").write_text(json.dumps(
+        {"bvid": "BV1x", "title": "t", "up": "u",
+         "duration_sec": 20, "view_count": 0, "cid": 1, "pubdate": 0}
+    ), encoding="utf-8")
+    (tmp_path / "scores.json").write_text(json.dumps([
+        {"chunk_id": "C001", "time_start": 0, "time_end": 5, "n_danmaku": 1,
+         "joy": 3, "trust": 0, "fear": 0, "surprise": 0, "sadness": 0,
+         "disgust": 0, "anger": 0, "anticipation": 0, "note": "x"}
+    ]), encoding="utf-8")
+    (tmp_path / "turnpoints.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "danmaku.json").write_text(json.dumps([
+        {"time": 1.0, "text": "a", "mode": 1, "color": 0, "fontsize": 25, "user_hash": "h1"},
+    ]), encoding="utf-8")
+    (tmp_path / "insights.json").write_text(json.dumps({"summary": "", "insights": []}), encoding="utf-8")
+    # NOTE: deliberately no danmaku_labels.json
+
+    render_report.run(tmp_path)
+
+    html = (tmp_path / "emoekg_report.html").read_text(encoding="utf-8")
+    assert 'id="data-danmaku-labels"' in html

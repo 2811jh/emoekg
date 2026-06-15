@@ -109,6 +109,15 @@ def run(
     dms = json.loads((working_dir / "danmaku.json").read_text(encoding="utf-8"))
     insights = _load_insights(working_dir / "insights.json")
 
+    # Per-danmaku emotion labels (Stage 3 Agent output). Missing/!list → [].
+    labels_path = working_dir / "danmaku_labels.json"
+    try:
+        danmaku_labels = json.loads(labels_path.read_text(encoding="utf-8"))
+        if not isinstance(danmaku_labels, list):
+            danmaku_labels = []
+    except (FileNotFoundError, json.JSONDecodeError):
+        danmaku_labels = []
+
     tpl_dir = _template_dir()
     echarts_js = (tpl_dir / "vendor" / "echarts.min.js").read_text(encoding="utf-8")
     app_js = (tpl_dir / "app.js").read_text(encoding="utf-8")
@@ -141,6 +150,7 @@ def run(
         scores_json=json.dumps(scores, ensure_ascii=False, indent=2),
         turnpoints_json=json.dumps(tps, ensure_ascii=False, indent=2),
         danmakus_json=json.dumps(dms, ensure_ascii=False),
+        danmaku_labels_json=json.dumps(danmaku_labels, ensure_ascii=False),
         config_json=json.dumps(config, ensure_ascii=False, indent=2),
         echarts_js=echarts_js,
         app_js=app_js,
