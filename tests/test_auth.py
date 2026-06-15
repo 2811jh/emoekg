@@ -62,3 +62,52 @@ def test_clear_cache_removes_file(auth):
     auth.clear_cache()
     assert not auth._cache_path().exists()
     auth.clear_cache()  # idempotent — no error on missing
+
+
+def _install_fake_qr(auth, monkeypatch, states):
+    """Inject a fake QrCodeLogin whose check_state yields `states` in order."""
+    class FakeEvents:
+        SCAN = "SCAN"; CONF = "CONF"; DONE = "DONE"; TIMEOUT = "TIMEOUT"
+
+    class FakeCred:
+        sessdata = "S"; bili_jct = "J"; buvid3 = "B"; dedeuserid = "U"
+
+    seq = list(states)
+
+    class FakeLogin:
+        async def generate_qrcode(self):
+            return None
+        def get_qrcode_terminal(self):
+            return "[QR-ASCII]"
+        async def check_state(self):
+            return seq.pop(0)
+        def get_credential(self):
+            return FakeCred()
+
+    monkeypatch.setattr(auth, "_make_qrcode_login", lambda: FakeLogin())
+    monkeypatch.setattr(auth, "_QrEvents", FakeEvents)
+    monkeypatch.setattr(auth.time, "sleep", lambda s: None)
+    monkeypatch.setattr(auth, "_run", _sync_run)
+
+
+def _sync_run(coro):
+    import asyncio as _a
+    loop = _a.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+def test_qrcode_login_done_saves_and_returns(auth, monkeypatch):
+    _install_fake_qr(auth, monkeypatch, ["SCAN", "CONF", "DONE"])
+    cred = auth.qrcode_login(timeout=10)
+    assert cred is not None
+    assert cred.sessdata == "S"
+    assert auth.load_cached_credential() is not None
+
+
+def test_qrcode_login_timeout_returns_none(auth, monkeypatch):
+    _install_fake_qr(auth, monkeypatch, ["SCAN", "TIMEOUT"])
+    cred = auth.qrcode_login(timeout=10)
+    assert cred is None

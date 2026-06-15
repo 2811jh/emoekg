@@ -95,3 +95,68 @@ def clear_cache() -> None:
         _cache_path().unlink()
     except FileNotFoundError:
         pass
+
+
+# --- QR-code login -------------------------------------------------------
+# These two indirections exist purely so unit tests can monkeypatch the
+# upstream login state machine without touching the network.
+
+def _make_qrcode_login():
+    from bilibili_api.login_v2 import QrCodeLogin, QrCodeLoginChannel
+
+    return QrCodeLogin(platform=QrCodeLoginChannel.WEB)
+
+
+def _qr_events():
+    from bilibili_api.login_v2 import QrCodeLoginEvents
+
+    return QrCodeLoginEvents
+
+
+# Tests replace this symbol with a fake enum; production reads the real one
+# lazily via _qr_events(). Keeping a module attribute makes patching trivial.
+_QrEvents = None
+
+
+def _run(coro):
+    """Bridge an async coroutine to sync context (one-shot event loop)."""
+    return asyncio.run(coro)
+
+
+def qrcode_login(timeout: int = 120) -> Any | None:
+    """Drive QR-code login. Print an ASCII QR; poll until DONE/TIMEOUT.
+
+    Returns a Credential on success (also written to cache), else None.
+    Blocks up to ``timeout`` seconds. Never raises on a failed/expired login.
+    """
+    events = _QrEvents or _qr_events()
+    login = _make_qrcode_login()
+    try:
+        _run(login.generate_qrcode())
+    except Exception:  # noqa: BLE001 — network/login failures degrade to None
+        return None
+
+    print(login.get_qrcode_terminal())
+    print("[emoekg] 请用 Bilibili App 扫描上方二维码登录（约 2 分钟内有效）…")
+
+    notified = False
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            state = _run(login.check_state())
+        except Exception:  # noqa: BLE001
+            return None
+        if state == events.DONE:
+            cred = login.get_credential()
+            save_credential(cred)
+            print("[emoekg] ✓ 登录成功，凭证已缓存，后续无需再扫。")
+            return cred
+        if state == events.TIMEOUT:
+            print("[emoekg] 二维码已过期，请重试。")
+            return None
+        if state in (events.SCAN, events.CONF) and not notified:
+            print("[emoekg] 已检测到扫描，请在手机上确认…")
+            notified = True
+        time.sleep(2)
+    print("[emoekg] 登录超时，本次将使用游客弹幕池。")
+    return None
