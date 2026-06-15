@@ -1,0 +1,282 @@
+[
+  {
+    "chunk_id": "C007",
+    "chunk_index": 6,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 9.0,
+    "description": "joy 达到 9/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP01",
+    "evidence_danmakus": [
+      {
+        "time": 271.827,
+        "text": "文                                            本",
+        "color": 15138834
+      },
+      {
+        "time": 282.145,
+        "text": "还能进化？！！！！！！！！！",
+        "color": 15138834
+      },
+      {
+        "time": 284.164,
+        "text": "『领域展开·无量空处』",
+        "color": 41194
+      },
+      {
+        "time": 312.441,
+        "text": "世界最终的答案！42！",
+        "color": 16707842
+      },
+      {
+        "time": 279.477,
+        "text": "请输为什么要入文本？",
+        "color": 15138834
+      }
+    ],
+    "time_start": 270,
+    "time_end": 315
+  },
+  {
+    "chunk_id": "C021",
+    "chunk_index": 20,
+    "type": "peak",
+    "main_dimension": "surprise",
+    "direction": "up",
+    "magnitude": 6.0,
+    "description": "surprise 达到 6/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP02",
+    "evidence_danmakus": [
+      {
+        "time": 915.497,
+        "text": "《谁也无法撼动它的体重》",
+        "color": 15138834
+      },
+      {
+        "time": 915.693,
+        "text": "666这位也搬不动吗",
+        "color": 16777215
+      },
+      {
+        "time": 917.968,
+        "text": "就连这位也无能为力吗",
+        "color": 16777215
+      },
+      {
+        "time": 905.76,
+        "text": "《him都拉不动》",
+        "color": 16646914
+      },
+      {
+        "time": 911.441,
+        "text": "哟，还是个小傲娇～",
+        "color": 14811775
+      }
+    ],
+    "time_start": 900,
+    "time_end": 945
+  },
+  {
+    "chunk_id": "C025",
+    "chunk_index": 24,
+    "type": "peak",
+    "main_dimension": "anticipation",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "anticipation 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP03",
+    "evidence_danmakus": [
+      {
+        "time": 1095.535,
+        "text": "冷知识：弹幕在你打开视频时装填，并不是实时刷新，刷人数没有意义",
+        "color": 16777215
+      },
+      {
+        "time": 1098.155,
+        "text": "我们至今任未理解那些刷人数和刷时间的人究竟是为了什么",
+        "color": 11890
+      },
+      {
+        "time": 1098.394,
+        "text": "不行，不能再看了，剩下的一半留着春晚看",
+        "color": 15138834
+      },
+      {
+        "time": 1108.319,
+        "text": "把钻石想成飞机，把岩浆想成大楼",
+        "color": 9033215
+      },
+      {
+        "time": 1087.913,
+        "text": "报告长环进度条被焊死了。",
+        "color": 8700107
+      }
+    ],
+    "time_start": 1080,
+    "time_end": 1125
+  },
+  {
+    "chunk_id": "C036",
+    "chunk_index": 35,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 10.0,
+    "description": "joy 达到 10/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP04",
+    "evidence_danmakus": [
+      {
+        "time": 1609.22,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 1616.689,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈哈哈哈好哈哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 1608.567,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 15138834
+      },
+      {
+        "time": 1614.333,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 1599.468,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      }
+    ],
+    "time_start": 1575,
+    "time_end": 1620
+  },
+  {
+    "chunk_id": "C041",
+    "chunk_index": 40,
+    "type": "peak",
+    "main_dimension": "surprise",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "surprise 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP05",
+    "evidence_danmakus": [
+      {
+        "time": 1829.22,
+        "text": "当前正在播出：《楚门的 楚门的世界》",
+        "color": 9033215
+      },
+      {
+        "time": 1811.739,
+        "text": "区区6转图腾就想让我无功而返？",
+        "color": 9487136
+      },
+      {
+        "time": 1816.34,
+        "text": "我无处不在，金丹这个道具有用？",
+        "color": 9843
+      },
+      {
+        "time": 1837.645,
+        "text": "掉无限城吧快点的，鸣女:已上线",
+        "color": 16777215
+      },
+      {
+        "time": 1842.759,
+        "text": "这个视频是我第1个认识他的视频",
+        "color": 15138834
+      }
+    ],
+    "time_start": 1800,
+    "time_end": 1845
+  },
+  {
+    "chunk_id": "C051",
+    "chunk_index": 50,
+    "type": "peak",
+    "main_dimension": "trust",
+    "direction": "up",
+    "magnitude": 8.0,
+    "description": "trust 达到 8/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP06",
+    "evidence_danmakus": [
+      {
+        "time": 2271.724,
+        "text": "这是果汁的wasted呀，跟前面丁真锻炼身体是一首歌",
+        "color": 16777215
+      },
+      {
+        "time": 2290.458,
+        "text": "左边可以看见树后面消失的动作模型",
+        "color": 16777215
+      },
+      {
+        "time": 2263.445,
+        "text": "我感觉他把头套摘下来就是up主",
+        "color": 15138834
+      },
+      {
+        "time": 2273.363,
+        "text": "正在播放：《这期神了》",
+        "color": 9033215
+      },
+      {
+        "time": 2251.373,
+        "text": "这集确实有点过分了",
+        "color": 16777215
+      }
+    ],
+    "time_start": 2250,
+    "time_end": 2295
+  },
+  {
+    "chunk_id": "C063",
+    "chunk_index": 62,
+    "type": "peak",
+    "main_dimension": "anticipation",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "anticipation 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP07",
+    "evidence_danmakus": [
+      {
+        "time": 2811.805,
+        "text": "进度条再撑一会儿吧，祝大家马年快乐哈！",
+        "color": 6830715
+      },
+      {
+        "time": 2810.891,
+        "text": "2月16日00：45，2000+",
+        "color": 41194
+      },
+      {
+        "time": 2829.108,
+        "text": "这波贪了这波应该留到春晚看的",
+        "color": 9843
+      },
+      {
+        "time": 2802.068,
+        "text": "这波贪大了，应该留春晚看的",
+        "color": 16777215
+      },
+      {
+        "time": 2810.157,
+        "text": "这波太贪了应该留在春晚看。",
+        "color": 16777215
+      }
+    ],
+    "time_start": 2790,
+    "time_end": 2835
+  }
+]

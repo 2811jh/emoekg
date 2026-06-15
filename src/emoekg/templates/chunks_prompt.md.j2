@@ -1,0 +1,12 @@
+# Danmaku Chunks for {{ meta.bvid }}
+Video: 《{{ meta.title }}》| UP: {{ meta.up }} | Duration: {{ duration_hms }} | Total: {{ total_danmaku }} 弹幕
+Window size: {{ window_size }}s | Total chunks: {{ chunks | length }}
+
+---
+
+{% for chunk in chunks -%}
+## [{{ chunk.chunk_id }}] {{ chunk.time_start_hms }} – {{ chunk.time_end_hms }} (n={{ chunk.danmakus | length }}{% if chunk.danmakus | length < 3 %}, SPARSE{% endif %})
+{% for dm in chunk.display_danmakus -%}
+- {{ dm.time_hms }} {{ dm.text }}
+{% endfor %}
+{% endfor %}

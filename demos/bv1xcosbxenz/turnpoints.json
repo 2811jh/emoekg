@@ -1,0 +1,442 @@
+[
+  {
+    "chunk_id": "C003",
+    "chunk_index": 2,
+    "type": "valley",
+    "main_dimension": "joy",
+    "direction": "down",
+    "magnitude": 4.0,
+    "description": "joy 跌至 4/10",
+    "detail": "局部低谷",
+    "turnpoint_id": "TP01",
+    "evidence_danmakus": [
+      {
+        "time": 21.915,
+        "text": "骨灰级元老！！！！T^T",
+        "color": 9843
+      },
+      {
+        "time": 21.037,
+        "text": "17分钟前",
+        "color": 16777215
+      },
+      {
+        "time": 21.832,
+        "text": "来了来了",
+        "color": 16777215
+      },
+      {
+        "time": 21.011,
+        "text": "好烫呀",
+        "color": 16777215
+      },
+      {
+        "time": 22.079,
+        "text": "温的",
+        "color": 16777215
+      }
+    ],
+    "time_start": 20,
+    "time_end": 30
+  },
+  {
+    "chunk_id": "C007",
+    "chunk_index": 6,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "joy 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP02",
+    "evidence_danmakus": [
+      {
+        "time": 63.296,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 69.0,
+        "text": "笑死我了，海皇急眼了",
+        "color": 9487136
+      },
+      {
+        "time": 63.281,
+        "text": "《应该可以吧》《但是也不能》",
+        "color": 16777215
+      },
+      {
+        "time": 67.536,
+        "text": "判定范围一乘一。就说对不对。",
+        "color": 16777215
+      },
+      {
+        "time": 64.828,
+        "text": "《别笑，你也过不了第2关》",
+        "color": 16707842
+      }
+    ],
+    "time_start": 60,
+    "time_end": 70
+  },
+  {
+    "chunk_id": "C014",
+    "chunk_index": 13,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "joy 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP03",
+    "evidence_danmakus": [
+      {
+        "time": 132.202,
+        "text": "西瓜南瓜干草块海带块，能吃的完整方块好像就这几个，其他像浆果层发光浆果作物这些都是不完整方块",
+        "color": 16777215
+      },
+      {
+        "time": 130.818,
+        "text": "干草块吗？把它做成小麦，然后合成面包",
+        "color": 16707842
+      },
+      {
+        "time": 134.827,
+        "text": "马哥在后面转来晃去摇头晃脑的好萌好萌",
+        "color": 15772458
+      },
+      {
+        "time": 134.134,
+        "text": "听见鸡叫的那一刻，就已经知道答案了",
+        "color": 15138834
+      },
+      {
+        "time": 134.44,
+        "text": "这都咯咯咯了，还用猜吗",
+        "color": 16777215
+      }
+    ],
+    "time_start": 130,
+    "time_end": 140
+  },
+  {
+    "chunk_id": "C024",
+    "chunk_index": 23,
+    "type": "valley",
+    "main_dimension": "joy",
+    "direction": "down",
+    "magnitude": 2.0,
+    "description": "joy 跌至 2/10",
+    "detail": "局部低谷",
+    "turnpoint_id": "TP04",
+    "evidence_danmakus": [
+      {
+        "time": 224.919,
+        "text": "也不是自爆，而是小巧院长非常了解海皇的性质，海皇不会立马想到屏障这个东西的，除非他有",
+        "color": 16777215
+      },
+      {
+        "time": 248.411,
+        "text": "你爱不爱吃葵花籽？我爱吃葵花籽，你爱不爱吃葵花籽？我爱吃葵花籽",
+        "color": 16777215
+      },
+      {
+        "time": 224.491,
+        "text": "这个其实是铁傀儡 需要我给你提供几个我的世界的日常冷知识吗？",
+        "color": 16646914
+      },
+      {
+        "time": 245.083,
+        "text": "动物身上获取——从村民家里拿",
+        "color": 15138834
+      },
+      {
+        "time": 248.896,
+        "text": "两个人已熟练掌握游戏技巧",
+        "color": 16707842
+      }
+    ],
+    "time_start": 230,
+    "time_end": 240
+  },
+  {
+    "chunk_id": "C031",
+    "chunk_index": 30,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 6.0,
+    "description": "joy 达到 6/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP05",
+    "evidence_danmakus": [
+      {
+        "time": 305.002,
+        "text": "哈哈哈哈哈哈哈哈哈",
+        "color": 9843
+      },
+      {
+        "time": 309.289,
+        "text": "哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 309.542,
+        "text": "海皇跟老板玩情商呢小砍",
+        "color": 16777215
+      },
+      {
+        "time": 300.148,
+        "text": "哇塞，好燃呀",
+        "color": 16777215
+      },
+      {
+        "time": 305.719,
+        "text": "神秘的贾叫",
+        "color": 9843
+      }
+    ],
+    "time_start": 300,
+    "time_end": 310
+  },
+  {
+    "chunk_id": "C052",
+    "chunk_index": 51,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "joy 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP06",
+    "evidence_danmakus": [
+      {
+        "time": 513.256,
+        "text": "怎么互相猜了自己的物品啊哈哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 515.33,
+        "text": "哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 515.251,
+        "text": "哈哈哈哈哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 515.672,
+        "text": "哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 516.163,
+        "text": "笑死我了",
+        "color": 9843
+      }
+    ],
+    "time_start": 510,
+    "time_end": 520
+  },
+  {
+    "chunk_id": "C055",
+    "chunk_index": 54,
+    "type": "peak",
+    "main_dimension": "surprise",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "surprise 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP07",
+    "evidence_danmakus": [
+      {
+        "time": 541.163,
+        "text": "我听到了寻踪的回响！",
+        "color": 15138834
+      },
+      {
+        "time": 544.575,
+        "text": "盲狙的神发力了！！！",
+        "color": 16707842
+      },
+      {
+        "time": 543.358,
+        "text": "哈哈哈哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 543.78,
+        "text": "一语双关（）",
+        "color": 16777215
+      },
+      {
+        "time": 544.952,
+        "text": "盲狙（物理）",
+        "color": 16707842
+      }
+    ],
+    "time_start": 540,
+    "time_end": 550
+  },
+  {
+    "chunk_id": "C060",
+    "chunk_index": 59,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "joy 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP08",
+    "evidence_danmakus": [
+      {
+        "time": 595.049,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 597.563,
+        "text": "看懂的都重庆小面了，你真的看懂了吗",
+        "color": 16777215
+      },
+      {
+        "time": 597.557,
+        "text": "甜筒（doge",
+        "color": 16777215
+      },
+      {
+        "time": 595.78,
+        "text": "《海王》",
+        "color": 16707842
+      },
+      {
+        "time": 592.3,
+        "text": "脑雾中",
+        "color": 8700107
+      }
+    ],
+    "time_start": 590,
+    "time_end": 600
+  },
+  {
+    "chunk_id": "C072",
+    "chunk_index": 71,
+    "type": "peak",
+    "main_dimension": "surprise",
+    "direction": "up",
+    "magnitude": 8.0,
+    "description": "surprise 达到 8/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP09",
+    "evidence_danmakus": [
+      {
+        "time": 719.377,
+        "text": "？？我去，咋还真的能",
+        "color": 16707842
+      },
+      {
+        "time": 715.275,
+        "text": "小伙捡了一沓钱~",
+        "color": 16777215
+      },
+      {
+        "time": 716.79,
+        "text": "我去 还真能",
+        "color": 41194
+      },
+      {
+        "time": 715.219,
+        "text": "都杵地里了",
+        "color": 16776960
+      },
+      {
+        "time": 716.95,
+        "text": "哈哈哈哈哈",
+        "color": 16777215
+      }
+    ],
+    "time_start": 710,
+    "time_end": 720
+  },
+  {
+    "chunk_id": "C077",
+    "chunk_index": 76,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "joy 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP10",
+    "evidence_danmakus": [
+      {
+        "time": 764.83,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 761.685,
+        "text": "哈哈哈哈哈哈哈哈哈哈哈哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 763.998,
+        "text": "哈哈哈哈哈哈哈哈",
+        "color": 16707842
+      },
+      {
+        "time": 761.403,
+        "text": "哈哈哈哈哈哈哈",
+        "color": 16777215
+      },
+      {
+        "time": 764.087,
+        "text": "笑死我了",
+        "color": 16777215
+      }
+    ],
+    "time_start": 760,
+    "time_end": 770
+  },
+  {
+    "chunk_id": "C085",
+    "chunk_index": 84,
+    "type": "peak",
+    "main_dimension": "joy",
+    "direction": "up",
+    "magnitude": 7.0,
+    "description": "joy 达到 7/10",
+    "detail": "局部峰值",
+    "turnpoint_id": "TP11",
+    "evidence_danmakus": [
+      {
+        "time": 840.337,
+        "text": "说可以激活不得了 为什么要试",
+        "color": 16777215
+      },
+      {
+        "time": 842.496,
+        "text": "直接说能激活不就行了吗",
+        "color": 16777215
+      },
+      {
+        "time": 842.196,
+        "text": "哎呀～不行～",
+        "color": 16707842
+      },
+      {
+        "time": 845.738,
+        "text": "砍咋这么萌！",
+        "color": 9843
+      },
+      {
+        "time": 848.263,
+        "text": "看完了，第二",
+        "color": 11890
+      }
+    ],
+    "time_start": 840,
+    "time_end": 850
+  }
+]
