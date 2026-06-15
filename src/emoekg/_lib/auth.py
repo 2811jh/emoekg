@@ -160,3 +160,38 @@ def qrcode_login(timeout: int = 120) -> Any | None:
         time.sleep(2)
     print("[emoekg] 登录超时，本次将使用游客弹幕池。")
     return None
+
+
+def _env_credential() -> Any | None:
+    """Build a Credential from BILI_* env vars, or None if BILI_SESSDATA unset."""
+    sessdata = os.environ.get("BILI_SESSDATA", "").strip()
+    if not sessdata:
+        return None
+    return _make_credential(
+        sessdata,
+        os.environ.get("BILI_BILI_JCT", "").strip(),
+        os.environ.get("BILI_BUVID3", "").strip(),
+        os.environ.get("BILI_DEDEUSERID", "").strip(),
+    )
+
+
+def resolve_credential(allow_login: bool = True) -> Any | None:
+    """Resolve a Credential: cache → env → QR login → None.
+
+    A credential found via env is also written to cache so subsequent runs
+    skip straight to layer 1. When allow_login is False (CI / unattended),
+    the QR step is skipped and we fall through to None (guest pool).
+    """
+    cred = load_cached_credential()
+    if cred is not None:
+        return cred
+
+    cred = _env_credential()
+    if cred is not None:
+        save_credential(cred)
+        return cred
+
+    if allow_login:
+        return qrcode_login()
+
+    return None

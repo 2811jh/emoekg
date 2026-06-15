@@ -111,3 +111,44 @@ def test_qrcode_login_timeout_returns_none(auth, monkeypatch):
     _install_fake_qr(auth, monkeypatch, ["SCAN", "TIMEOUT"])
     cred = auth.qrcode_login(timeout=10)
     assert cred is None
+
+
+def test_resolve_prefers_cache(auth, monkeypatch):
+    class FakeCred:
+        sessdata = "CACHE"; bili_jct = "J"; buvid3 = "B"; dedeuserid = "U"
+    auth.save_credential(FakeCred())
+    monkeypatch.setenv("BILI_SESSDATA", "ENV")
+    monkeypatch.setattr(auth, "qrcode_login", lambda timeout=120: pytest.fail("should not login"))
+    cred = auth.resolve_credential(allow_login=True)
+    assert cred.sessdata == "CACHE"
+
+
+def test_resolve_falls_back_to_env(auth, monkeypatch):
+    auth.clear_cache()
+    monkeypatch.setenv("BILI_SESSDATA", "ENV")
+    monkeypatch.setenv("BILI_BILI_JCT", "JCT")
+    called = {"login": False}
+    monkeypatch.setattr(auth, "qrcode_login", lambda timeout=120: called.__setitem__("login", True))
+    cred = auth.resolve_credential(allow_login=True)
+    assert cred.sessdata == "ENV"
+    assert called["login"] is False
+    assert auth.load_cached_credential() is not None
+
+
+def test_resolve_triggers_login_when_no_cache_no_env(auth, monkeypatch):
+    auth.clear_cache()
+    monkeypatch.delenv("BILI_SESSDATA", raising=False)
+
+    class FakeCred:
+        sessdata = "QR"; bili_jct = "J"; buvid3 = "B"; dedeuserid = "U"
+    monkeypatch.setattr(auth, "qrcode_login", lambda timeout=120: FakeCred())
+    cred = auth.resolve_credential(allow_login=True)
+    assert cred.sessdata == "QR"
+
+
+def test_resolve_no_login_returns_none(auth, monkeypatch):
+    auth.clear_cache()
+    monkeypatch.delenv("BILI_SESSDATA", raising=False)
+    monkeypatch.setattr(auth, "qrcode_login", lambda timeout=120: pytest.fail("no_login must skip"))
+    cred = auth.resolve_credential(allow_login=False)
+    assert cred is None
