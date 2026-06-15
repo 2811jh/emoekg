@@ -20,7 +20,6 @@ network is needed for unit tests.
 from __future__ import annotations
 
 import asyncio
-import os
 import time
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -36,7 +35,7 @@ _BACKOFF_BASE = 1.5
 
 
 # ---------------------------------------------------------------------------
-# Credential — read B站 login cookie from environment (never hard-coded)
+# Credential — resolved via emoekg._lib.auth (cache → env → QR login → none)
 # ---------------------------------------------------------------------------
 
 
