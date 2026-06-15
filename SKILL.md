@@ -108,6 +108,17 @@ CLI 会：
 - 切片成 ~90 个 chunk，生成 `chunks.md`（给你看的 prompt）
 - 写入空骨架 `scores.json`（`[]`）
 
+### 解锁全量弹幕（扫码登录，推荐）
+
+游客只能拿到实时弹幕池（量少）。要拿登录态/历史全量弹幕，首次需登录一次：
+
+- **自动**：直接跑 `emoekg prepare <url> -o <dir>`，若无有效凭证会自动在终端打印二维码，用 Bilibili App 扫码即可。凭证缓存在 `~/.emoekg/credential.json`，约 25 天内自动复用，期间无需再扫。
+- **手动刷新**：`emoekg login` 单独扫码刷新缓存。
+- **跳过登录**：`emoekg prepare <url> -o <dir> --no-login` 仅用缓存/环境变量/游客池（适合无人值守 / CI）。
+- **环境变量（兼容旧用法）**：设 `BILI_SESSDATA` 仍然有效，且会被写入缓存供后续复用。
+
+> 凭证仅存本地、不入库、不打印。过期或失效时会自动重新走扫码。
+
 完成后 CLI 会提示 `Waiting for Agent scoring`。
 
 > **注意 — 文件名约定的两层含义**：
@@ -237,6 +248,7 @@ cp "$HOME/Desktop/AI情绪心电图-<关键字>/emoekg_report.html" "$HOME/Deskt
 | 命令 | 用途 |
 |---|---|
 | `emoekg prepare <url> -o <dir>` | 跑 S1+S2，然后停住等你打分 |
+| `emoekg login` | 扫码登录并缓存凭证（解锁全量弹幕） |
 | `emoekg finalize -o <dir>` | 跑 S4+S5，要求 scores.json 已填 |
 | `emoekg finalize -o <dir> --with-video` | 同上，但切到本地 video.mp4 双向同步 |
 | `emoekg run <url> -o <dir>` | 一条命令跑完；如果 scores.json 还空会等你 |
