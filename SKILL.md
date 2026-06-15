@@ -126,11 +126,14 @@ CLI 会：
 4. **`write` 工具**把完整 JSON 数组写回 `<working_dir>/scores.json`
    - 数组顺序严格对齐 chunk 顺序（C001 → Cxxx）
    - 每行 13 个字段：`chunk_id` / `time_start` / `time_end` / `n_danmaku` / 8 个情绪 / `note`
-5. **通读全部 scores 找规律，写 `insights.json`**（rubric §6 有完整指南）：
+6. **`write` 工具**把逐条弹幕标签写回 `<working_dir>/danmaku_labels.json`
+   - 数组每项 `{idx, dim}`，`idx` 对齐 chunks.md 的 `[#idx]`
+   - `dim` ∈ 8 维或 `"neutral"`（无情绪），判据见 rubric §7
+7. **通读全部 scores 找规律，写 `insights.json`**（rubric §6 有完整指南）：
    - `summary`：30–80 字一句话，**洞察性**语言（不是描述）
    - `insights`：严格 3 条，每条 `title` 4–8 字 + `body` 40–80 字
    - 三条要覆盖**节奏 + 机制 + 反差**三种视角，不能三条讲同一件事
-6. 自检（rubric §5 + §6.6），确保没字段缺失 / 越界 / 三条 insight 同质
+8. 自检（rubric §5 + §6.6），确保没字段缺失 / 越界 / 三条 insight 同质
 
 > **不要请求用户**手动打分或写洞察，不要调用外部 API，不要写额外 Python 脚本——
 > 直接用 `read_file` + `write` 就能完成全部工作。

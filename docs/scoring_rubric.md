@@ -227,3 +227,38 @@
 回去检查 §6.2。
 
 > **章节编号说明**：本文档（rubric）的 §5 / §6 是**打分**和**洞察**两个产出，归属 SKILL.md 的 **Step 3**（不要把 rubric §6 误读为 SKILL Step 6 — SKILL Step 6 是桌面投放，发生在 finalize 之后）。
+
+---
+
+## 7. 单条弹幕情绪标注（danmaku_labels.json）
+
+除 chunk 级 8 维打分外，Stage 3 还要为**每一条弹幕**单独标一个主导情绪，
+写回 `danmaku_labels.json`。这驱动 §04 弹幕列表的圆点颜色与情绪筛选。
+
+### 7.1 产出格式
+
+    [
+      {"idx": 0, "dim": "anticipation"},
+      {"idx": 1, "dim": "neutral"},
+      {"idx": 2, "dim": "disgust"}
+    ]
+
+- `idx`：`chunks.md` 里每条弹幕行首的 `[#idx]`，对齐 danmaku.json 全局下标
+- `dim`：8 维之一，或 `"neutral"`（无情绪/噪声）
+
+### 7.2 neutral 判据
+
+以下归 `neutral`，不要硬塞情绪：
+- 纯标点 / 无意义：`?`、`。`、`！`
+- 时间戳/计数：`0分钟前`、`一分钟前`、`第一个看完的`
+- 客观陈述/考据（无情绪色彩）：`背景音乐是她的变调`、`人声鼎沸`
+- 无法判断主导情绪的中性弹幕
+
+### 7.3 与 chunk 分的关系
+
+单条标注**独立判断**，不要照搬所在 chunk 的主导情绪。
+一个以「期待」为主的 chunk 里完全可以有 `disgust`、`neutral` 的弹幕。
+
+### 7.4 dense chunk
+
+被下采样（chunks.md 未展示）的弹幕标不到 → 默认 neutral，列表仍显示但不带情绪色。
