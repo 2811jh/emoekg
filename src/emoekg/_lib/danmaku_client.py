@@ -40,34 +40,15 @@ _BACKOFF_BASE = 1.5
 # ---------------------------------------------------------------------------
 
 
-def _build_credential() -> Any | None:
-    """Build a :class:`bilibili_api.Credential` from environment variables.
+def _build_credential(allow_login: bool = True) -> Any | None:
+    """Resolve a B站 Credential via emoekg._lib.auth.
 
-    The **history** danmaku API (``get_danmakus(date=...)`` +
-    ``get_history_danmaku_index``) requires a logged-in cookie; the realtime
-    pool does not. We read the cookie purely from the environment so secrets
-    never touch the repo or the CLI history:
-
-    * ``BILI_SESSDATA``  — required to unlock history (the only must-have)
-    * ``BILI_BILI_JCT``  — optional, some write ops need it (we don't)
-    * ``BILI_BUVID3``    — optional, improves request acceptance
-    * ``BILI_DEDEUSERID``— optional
-
-    Returns ``None`` when ``BILI_SESSDATA`` is absent, signalling the caller to
-    fall back to the realtime danmaku pool.
+    Delegates to the 4-layer resolver (cache → BILI_SESSDATA env → QR-code
+    login → None). Returns None to signal the caller to use the guest pool.
     """
-    sessdata = os.environ.get("BILI_SESSDATA", "").strip()
-    if not sessdata:
-        return None
+    from emoekg._lib.auth import resolve_credential
 
-    from bilibili_api import Credential  # local import: optional at test time
-
-    return Credential(
-        sessdata=sessdata,
-        bili_jct=os.environ.get("BILI_BILI_JCT", "").strip() or None,
-        buvid3=os.environ.get("BILI_BUVID3", "").strip() or None,
-        dedeuserid=os.environ.get("BILI_DEDEUSERID", "").strip() or None,
-    )
+    return resolve_credential(allow_login=allow_login)
 
 
 # ---------------------------------------------------------------------------
@@ -330,6 +311,7 @@ def fetch_all_danmakus(
     duration_sec: int,
     retries: int = 3,
     pubdate: int = 0,
+    allow_login: bool = True,
 ) -> list[dict]:
     """Fetch danmakus, preferring the **full historical** archive when possible.
 
@@ -367,7 +349,7 @@ def fetch_all_danmakus(
         return []
 
     num_segments = (duration_sec + _SEGMENT_SEC - 1) // _SEGMENT_SEC
-    credential = _build_credential()
+    credential = _build_credential(allow_login=allow_login)
 
     # No login → realtime pool only.
     if credential is None:

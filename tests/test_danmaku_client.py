@@ -350,3 +350,18 @@ def test_fetch_all_danmakus_retries_on_failure(mock_get_video):
     dms = fetch_all_danmakus("BV18acMz4ELL", duration_sec=60, retries=3)
     assert [d["text"] for d in dms] == ["eventually"]
     assert call_count["n"] == 3
+
+
+def test_build_credential_delegates_to_resolve(monkeypatch):
+    import emoekg._lib.danmaku_client as dc
+
+    sentinel = object()
+    captured = {}
+    def fake_resolve(allow_login=True):
+        captured["allow_login"] = allow_login
+        return sentinel
+    monkeypatch.setattr("emoekg._lib.auth.resolve_credential", fake_resolve)
+
+    out = dc._build_credential(allow_login=False)
+    assert out is sentinel
+    assert captured["allow_login"] is False
