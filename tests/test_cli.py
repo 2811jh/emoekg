@@ -97,7 +97,7 @@ def test_prepare_runs_fetch_then_slice_then_hands_off(tmp_path, stage_spies, cap
     assert stage_spies["fetch"] is not None
     assert stage_spies["fetch"]["args"][0] == "BV1xTEST"
     assert Path(stage_spies["fetch"]["args"][1]) == tmp_path
-    assert stage_spies["fetch"]["kwargs"] == {"force": False}
+    assert stage_spies["fetch"]["kwargs"] == {"force": False, "allow_login": True}
 
     assert stage_spies["slice"] is not None
     assert Path(stage_spies["slice"]["args"][0]) == tmp_path
@@ -259,6 +259,26 @@ class TestScoresArePopulated:
         p = tmp_path / "scores.json"
         p.write_text("   \n  ", encoding="utf-8")
         assert cli._scores_are_populated(p) is False
+
+
+def test_prepare_parses_no_login_flag():
+    from emoekg.cli import build_parser
+    ap = build_parser()
+    args = ap.parse_args(["prepare", "BV1xx", "-o", "out", "--no-login"])
+    assert args.no_login is True
+    args2 = ap.parse_args(["prepare", "BV1xx", "-o", "out"])
+    assert args2.no_login is False
+
+
+def test_login_subcommand_invokes_qrcode_login(monkeypatch):
+    from emoekg import cli
+
+    called = {"login": False}
+    monkeypatch.setattr("emoekg._lib.auth.qrcode_login",
+                        lambda timeout=120: called.__setitem__("login", True) or object())
+    rc = cli.main(["login"])
+    assert rc == 0
+    assert called["login"] is True
 
     def test_empty_array(self, tmp_path):
         p = tmp_path / "scores.json"

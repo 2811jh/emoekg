@@ -24,7 +24,12 @@ from emoekg._lib.danmaku_client import fetch_all_danmakus, fetch_video_meta
 __all__ = ["run", "main"]
 
 
-def run(url_or_bvid: str, working_dir: Path | str, force: bool = False) -> None:
+def run(
+    url_or_bvid: str,
+    working_dir: Path | str,
+    force: bool = False,
+    allow_login: bool = True,
+) -> None:
     """Execute Stage 1.
 
     Args:
@@ -32,6 +37,7 @@ def run(url_or_bvid: str, working_dir: Path | str, force: bool = False) -> None:
             short link, bare BV id, or a chat message containing one.
         working_dir: Output directory. Created if missing.
         force: If ``True``, ignore existing cache files and re-fetch.
+        allow_login: If ``True``, allow QR login fallback for full danmaku fetch.
     """
     working_dir = Path(working_dir)
     working_dir.mkdir(parents=True, exist_ok=True)
@@ -63,7 +69,8 @@ def run(url_or_bvid: str, working_dir: Path | str, force: bool = False) -> None:
 
     print(f"[Stage 1] Fetching danmakus (duration={meta['duration_sec']}s)…")
     dms = fetch_all_danmakus(
-        bvid, meta["duration_sec"], pubdate=meta.get("pubdate", 0)
+        bvid, meta["duration_sec"], pubdate=meta.get("pubdate", 0),
+        allow_login=allow_login,
     )
     # No indent for the danmaku payload — it can easily be >10 MB of text
     # and indentation triples the file size without adding value.

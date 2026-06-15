@@ -101,10 +101,15 @@ def _print_hand_off(working_dir: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def run_prepare(url: str, working_dir: Path, force: bool = False) -> int:
+def run_prepare(
+    url: str,
+    working_dir: Path,
+    force: bool = False,
+    allow_login: bool = True,
+) -> int:
     """Execute S1 + S2, then hand off to the Agent."""
     working_dir = Path(working_dir)
-    fetch_danmaku.run(url, working_dir, force=force)
+    fetch_danmaku.run(url, working_dir, force=force, allow_login=allow_login)
     slice_chunks.run(working_dir, force=force)
     _print_hand_off(working_dir)
     return 0
@@ -135,10 +140,11 @@ def run_oneshot(
     working_dir: Path,
     with_video: bool = False,
     force: bool = False,
+    allow_login: bool = True,
 ) -> int:
     """Fetch + slice; if already-scored, also detect + render. Otherwise hand off."""
     working_dir = Path(working_dir)
-    fetch_danmaku.run(url, working_dir, force=force)
+    fetch_danmaku.run(url, working_dir, force=force, allow_login=allow_login)
     slice_chunks.run(working_dir, force=force)
 
     if not _scores_are_populated(working_dir / "scores.json"):
@@ -175,6 +181,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap_prep.add_argument("url", help="B 站视频 URL / 短链 / BV id")
     ap_prep.add_argument("-o", "--output", required=True, help="工作目录（自动创建）")
     ap_prep.add_argument("--force", action="store_true", help="忽略缓存重跑")
+    ap_prep.add_argument(
+        "--no-login", action="store_true",
+        help="跳过扫码登录，仅用缓存/环境变量/游客池",
+    )
 
     # finalize
     ap_fin = sub.add_parser(
@@ -197,6 +207,15 @@ def build_parser() -> argparse.ArgumentParser:
     ap_run.add_argument("-o", "--output", required=True, help="工作目录")
     ap_run.add_argument("--with-video", action="store_true")
     ap_run.add_argument("--force", action="store_true")
+    ap_run.add_argument(
+        "--no-login", action="store_true",
+        help="跳过扫码登录，仅用缓存/环境变量/游客池",
+    )
+
+    sub.add_parser(
+        "login",
+        help="扫码登录并缓存凭证（一次扫码长期复用，解锁全量弹幕）",
+    )
 
     return ap
 
@@ -204,15 +223,28 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     ap = build_parser()
     args = ap.parse_args(argv)
-    wd = Path(args.output)
+    wd = Path(args.output) if getattr(args, "output", None) else None
 
     try:
         if args.command == "prepare":
-            return run_prepare(args.url, wd, force=args.force)
+            return run_prepare(
+                args.url, wd, force=args.force,
+                allow_login=not args.no_login,
+            )
         if args.command == "finalize":
             return run_finalize(wd, with_video=args.with_video, force=args.force)
         if args.command == "run":
-            return run_oneshot(args.url, wd, with_video=args.with_video, force=args.force)
+            return run_oneshot(
+                args.url, wd, with_video=args.with_video,
+                force=args.force, allow_login=not args.no_login,
+            )
+        if args.command == "login":
+            from emoekg._lib.auth import qrcode_login
+            cred = qrcode_login()
+            if cred is None:
+                print("[emoekg] 登录未完成。", file=sys.stderr)
+                return 1
+            return 0
     except FileNotFoundError as e:
         print(f"[emoekg] missing input: {e}", file=sys.stderr)
         return 2
