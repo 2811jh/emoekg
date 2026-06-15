@@ -90,23 +90,30 @@ def run(working_dir: Path | str, force: bool = False) -> None:
     chunks_md = working_dir / "chunks.md"
     scores_json = working_dir / "scores.json"
     insights_json = working_dir / "insights.json"
+    labels_json = working_dir / "danmaku_labels.json"
 
-    # "Skip" requires all three artifacts present — otherwise we re-run so
-    # older working dirs (pre-insights protocol) can be upgraded in place.
+    # "Skip" requires all four artifacts present — otherwise we re-run so
+    # older working dirs can be upgraded in place.
     if (
         not force
         and chunks_md.exists()
         and scores_json.exists()
         and insights_json.exists()
+        and labels_json.exists()
     ):
         print(
-            f"[Stage 2] SKIP — chunks.md, scores.json, insights.json all "
-            f"present in {working_dir}. Pass --force to re-slice."
+            f"[Stage 2] SKIP — chunks.md, scores.json, insights.json, "
+            f"danmaku_labels.json all present in {working_dir}. Pass --force "
+            f"to re-slice."
         )
         return
 
     meta = json.loads((working_dir / "meta.json").read_text(encoding="utf-8"))
     dms = json.loads((working_dir / "danmaku.json").read_text(encoding="utf-8"))
+    # Tag each danmaku with its global index so the prompt can show [#idx]
+    # and the Agent's per-danmaku labels align back to danmaku.json order.
+    for i, d in enumerate(dms):
+        d["_idx"] = i
     duration = meta["duration_sec"]
     window_size = compute_window_size(duration)
 
@@ -125,7 +132,7 @@ def run(working_dir: Path | str, force: bool = False) -> None:
         chunk["time_end_hms"] = format_hms(chunk["time_end"])
         sampled = _sample_dense(chunk["danmakus"], seed=chunk["chunk_id"])
         chunk["display_danmakus"] = [
-            {"time_hms": format_hms(d["time"]), "text": d["text"]}
+            {"idx": d["_idx"], "time_hms": format_hms(d["time"]), "text": d["text"]}
             for d in sampled
         ]
 
@@ -152,6 +159,11 @@ def run(working_dir: Path | str, force: bool = False) -> None:
         ),
         encoding="utf-8",
     )
+    # Per-danmaku emotion labels skeleton. The Agent fills this in Stage 3 with
+    # one {"idx", "dim"} per danmaku ("neutral" for no-emotion danmaku).
+    # render_report is tolerant of the empty form and falls back to chunk-level
+    # dominant emotion when this is empty.
+    labels_json.write_text("[]", encoding="utf-8")
     print(f"[Stage 2] Done → {len(chunks)} chunks, window={window_size}s")
 
 

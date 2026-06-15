@@ -179,6 +179,7 @@ def test_run_skips_when_all_three_outputs_exist(tmp_path):
     (tmp_path / "insights.json").write_text(
         '{"summary":"kept","insights":[]}', encoding="utf-8",
     )
+    (tmp_path / "danmaku_labels.json").write_text("[]", encoding="utf-8")
 
     slice_chunks.run(tmp_path, force=False)
 
@@ -243,3 +244,42 @@ def test_run_dense_sampling_is_deterministic(tmp_path):
     text_b = (tmp_path / "chunks.md").read_text(encoding="utf-8")
 
     assert text_a == text_b, "dense sampling must be reproducible across runs"
+
+
+def test_stage2_writes_danmaku_labels_skeleton(tmp_path):
+    import json
+    from emoekg.stages import slice_chunks
+
+    (tmp_path / "meta.json").write_text(json.dumps(
+        {"bvid": "BV1x", "title": "t", "up": "u",
+         "duration_sec": 20, "view_count": 0, "cid": 1, "pubdate": 0}
+    ), encoding="utf-8")
+    (tmp_path / "danmaku.json").write_text(json.dumps([
+        {"time": 1.0, "text": "a", "mode": 1, "color": 0, "fontsize": 25, "user_hash": "h1"},
+        {"time": 2.0, "text": "b", "mode": 1, "color": 0, "fontsize": 25, "user_hash": "h2"},
+    ]), encoding="utf-8")
+
+    slice_chunks.run(tmp_path)
+
+    labels_path = tmp_path / "danmaku_labels.json"
+    assert labels_path.exists()
+    assert json.loads(labels_path.read_text(encoding="utf-8")) == []
+
+
+def test_stage2_chunks_md_has_global_idx(tmp_path):
+    import json
+    from emoekg.stages import slice_chunks
+
+    (tmp_path / "meta.json").write_text(json.dumps(
+        {"bvid": "BV1x", "title": "t", "up": "u",
+         "duration_sec": 20, "view_count": 0, "cid": 1, "pubdate": 0}
+    ), encoding="utf-8")
+    (tmp_path / "danmaku.json").write_text(json.dumps([
+        {"time": 1.0, "text": "hello", "mode": 1, "color": 0, "fontsize": 25, "user_hash": "h1"},
+    ]), encoding="utf-8")
+
+    slice_chunks.run(tmp_path)
+
+    md = (tmp_path / "chunks.md").read_text(encoding="utf-8")
+    assert "[#0]" in md
+    assert "hello" in md
