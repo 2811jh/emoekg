@@ -169,7 +169,7 @@ def test_run_downsamples_dense_chunk(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_run_skips_when_all_three_outputs_exist(tmp_path):
+def test_run_skips_when_all_outputs_exist(tmp_path):
     _write_meta(tmp_path)
     (tmp_path / "danmaku.json").write_text("[]", encoding="utf-8")
     (tmp_path / "chunks.md").write_text("STALE", encoding="utf-8")
