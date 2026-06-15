@@ -555,9 +555,10 @@ function renderDanmakuList() {
   const html = DANMAKUS.map((d, i) => {
     let dim;
     if (DANMAKU_LABELS) {
-      // Per-danmaku label. Unlabeled idx (e.g. dense-chunk down-sampling) =
-      // neutral. neutral = grey dot, hidden under any emotion filter.
-      dim = DANMAKU_LABELS.get(i) || 'neutral';
+      // Per-danmaku label. Unlabeled idx (e.g. dense-chunk down-sampling) or
+      // any unrecognized dim → neutral (grey dot, hidden under emotion filters).
+      const lbl = DANMAKU_LABELS.get(i);
+      dim = DIMS.includes(lbl) ? lbl : 'neutral';
     } else {
       // Fallback: inherit the chunk's dominant emotion (legacy behaviour).
       const chunk = chunkDomOf(d.time);
