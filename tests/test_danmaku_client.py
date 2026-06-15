@@ -365,3 +365,28 @@ def test_build_credential_delegates_to_resolve(monkeypatch):
     out = dc._build_credential(allow_login=False)
     assert out is sentinel
     assert captured["allow_login"] is False
+
+
+def test_history_auth_error_clears_cache_and_falls_back(monkeypatch):
+    import emoekg._lib.danmaku_client as dc
+
+    # A non-None credential to enter history mode.
+    monkeypatch.setattr(dc, "_build_credential", lambda allow_login=True: object())
+
+    cleared = {"called": False}
+    monkeypatch.setattr("emoekg._lib.auth.clear_cache",
+                        lambda: cleared.__setitem__("called", True))
+
+    # history date walk raises an auth-like error
+    def boom(*a, **k):
+        raise RuntimeError("-101 账号未登录")
+    monkeypatch.setattr(dc, "_history_dates", boom)
+
+    # realtime fallback returns a sentinel list
+    monkeypatch.setattr(dc, "_get_video", lambda bvid, credential=None: object())
+    monkeypatch.setattr(dc, "_fetch_realtime",
+                        lambda v, n, r: [{"time": 1.0, "text": "x", "user_hash": "h"}])
+
+    out = dc.fetch_all_danmakus("BV1xx", 60, allow_login=True)
+    assert cleared["called"] is True
+    assert out == [{"time": 1.0, "text": "x", "user_hash": "h"}]

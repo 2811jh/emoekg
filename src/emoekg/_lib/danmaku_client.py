@@ -360,39 +360,42 @@ def fetch_all_danmakus(
         return _fetch_realtime(_get_video(bvid), num_segments, retries)
 
     # History mode: walk day by day from post date to today.
-    v = _get_video(bvid, credential=credential)
-    today = date.today()
-    if pubdate > 0:
-        start = datetime.fromtimestamp(pubdate).date()
-    else:
-        start = today - timedelta(days=365)
+    try:
+        v = _get_video(bvid, credential=credential)
+        today = date.today()
+        if pubdate > 0:
+            start = datetime.fromtimestamp(pubdate).date()
+        else:
+            start = today - timedelta(days=365)
 
-    days = _history_dates(v, start, today, retries)
-    if not days:
-        # Index empty/unavailable — degrade gracefully to the realtime pool.
-        print("  [danmaku] history index empty → falling back to realtime pool")
-        return _fetch_realtime(v, num_segments, retries)
+        days = _history_dates(v, start, today, retries)
+        if not days:
+            print("  [danmaku] history index empty → falling back to realtime pool")
+            return _fetch_realtime(v, num_segments, retries)
 
-    print(f"  [danmaku] history mode: {len(days)} day-snapshots to fetch")
-    collected: list[dict] = []
-    failed_days = 0
-    for i, day in enumerate(days, 1):
-        try:
-            raw = _fetch_one_day(v, day, retries)
-        except RuntimeError:
-            failed_days += 1
-            continue
-        collected.extend(_normalize_danmaku(dm) for dm in raw)
-        if i % 10 == 0 or i == len(days):
-            print(f"    …{i}/{len(days)} days, {len(collected):,} raw so far")
-        # Gentle pacing so we don't hammer the history endpoint.
-        time.sleep(0.2)
+        print(f"  [danmaku] history mode: {len(days)} day-snapshots to fetch")
+        collected: list[dict] = []
+        failed_days = 0
+        for i, day in enumerate(days, 1):
+            try:
+                raw = _fetch_one_day(v, day, retries)
+            except RuntimeError:
+                failed_days += 1
+                continue
+            collected.extend(_normalize_danmaku(dm) for dm in raw)
+            if i % 10 == 0 or i == len(days):
+                print(f"    …{i}/{len(days)} days, {len(collected):,} raw so far")
+            time.sleep(0.2)
 
-    if not collected:
-        print("  [danmaku] history returned nothing → falling back to realtime")
-        return _fetch_realtime(v, num_segments, retries)
-
-    if failed_days:
-        print(f"  [danmaku] note: {failed_days} day(s) failed and were skipped")
-
-    return _dedup(collected)
+        if not collected:
+            print("  [danmaku] history returned nothing → falling back to realtime")
+            return _fetch_realtime(v, num_segments, retries)
+        if failed_days:
+            print(f"  [danmaku] note: {failed_days} day(s) failed and were skipped")
+        return _dedup(collected)
+    except Exception as e:  # noqa: BLE001 — auth/network failure → guest pool
+        from emoekg._lib.auth import clear_cache
+        print(f"  [danmaku] history mode failed ({e!r}) → clearing cached login, "
+              "falling back to realtime pool")
+        clear_cache()
+        return _fetch_realtime(_get_video(bvid), num_segments, retries)
