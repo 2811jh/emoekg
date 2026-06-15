@@ -21,6 +21,17 @@ const META       = JSON.parse($('data-meta').textContent);
 const SCORES     = JSON.parse($('data-scores').textContent);
 const TURNPOINTS = JSON.parse($('data-turnpoints').textContent);
 const DANMAKUS   = JSON.parse($('data-danmakus').textContent);
+const DANMAKU_LABELS = (() => {
+  const el = $('data-danmaku-labels');
+  if (!el) return null;
+  try {
+    const arr = JSON.parse(el.textContent);
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const map = new Map();
+    for (const r of arr) map.set(r.idx, r.dim);
+    return map;
+  } catch { return null; }
+})();
 const CONFIG     = JSON.parse($('data-config').textContent);
 
 // Pull the chart palette from the template's CSS variables so the chart stays
@@ -542,12 +553,21 @@ function renderDanmakuList() {
   const list = $('danmaku-list');
   const colors = CONFIG.colors;
   const html = DANMAKUS.map((d, i) => {
-    const chunk = chunkDomOf(d.time);
-    const dim = chunk ? dominantDim(chunk) : 'joy';
+    let dim;
+    if (DANMAKU_LABELS) {
+      // Per-danmaku label. Unlabeled idx (e.g. dense-chunk down-sampling) =
+      // neutral. neutral = grey dot, hidden under any emotion filter.
+      dim = DANMAKU_LABELS.get(i) || 'neutral';
+    } else {
+      // Fallback: inherit the chunk's dominant emotion (legacy behaviour).
+      const chunk = chunkDomOf(d.time);
+      dim = chunk ? dominantDim(chunk) : 'joy';
+    }
+    const dotColor = dim === 'neutral' ? INK_MUTED : colors[dim];
     return `<div class="item" data-idx="${i}" data-time="${d.time}" data-dim="${dim}">
       <span class="time">${fmtHMS(d.time)}</span>
       <span class="text">${escapeHtml(d.text)}</span>
-      <span class="dot" style="background:${colors[dim]}"></span>
+      <span class="dot" style="background:${dotColor}"></span>
     </div>`;
   }).join('');
   list.innerHTML = html;
