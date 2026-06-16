@@ -86,7 +86,7 @@ def test_run_accepts_bare_bvid(
 
     # Downstream clients get the canonical BV id, not the raw URL string.
     mock_meta.assert_called_once_with("BV18acMz4ELL")
-    mock_dms.assert_called_once_with("BV18acMz4ELL", 60, pubdate=0)
+    mock_dms.assert_called_once_with("BV18acMz4ELL", 60, pubdate=0, allow_login=True)
 
 
 # ---------------------------------------------------------------------------
