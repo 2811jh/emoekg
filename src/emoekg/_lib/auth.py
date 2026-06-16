@@ -13,7 +13,9 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import tempfile
 import time
+import webbrowser
 from pathlib import Path
 from typing import Any
 
@@ -123,8 +125,50 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _present_qrcode(login: Any) -> None:
+    """Render the login QR as a local HTML page and open it in the browser.
+
+    More reliable than terminal ASCII inside an Agent/CLI environment where the
+    block-character QR often can't be scanned. Writes a self-contained page
+    (PNG embedded as base64) to a temp file and opens it with the default
+    browser. Falls back to printing the terminal ASCII if anything fails.
+    """
+    import base64
+
+    try:
+        pic = login.get_qrcode_picture()
+        img_type = (getattr(pic, "imageType", "png") or "png").lstrip(".")
+        b64 = base64.b64encode(pic.content).decode("ascii")
+        html = (
+            "<!doctype html><html lang='zh'><head><meta charset='utf-8'>"
+            "<meta http-equiv='refresh' content='3'>"
+            "<title>emoekg 扫码登录</title>"
+            "<style>body{background:#0d0d0f;color:#e8e8ea;font-family:"
+            "-apple-system,Segoe UI,sans-serif;display:flex;flex-direction:column;"
+            "align-items:center;justify-content:center;height:100vh;margin:0}"
+            ".qr{background:#fff;padding:18px;border-radius:14px}"
+            "h1{font-size:20px;font-weight:600}p{color:#9a9aa2}</style></head>"
+            "<body><h1>emoekg · 扫码登录 Bilibili</h1>"
+            f"<div class='qr'><img src='data:image/{img_type};base64,{b64}'"
+            " width='240' height='240' alt='QR'></div>"
+            "<p>用 Bilibili App 扫描上方二维码，并在手机上确认。</p>"
+            "<p>登录成功后回到终端即可，本页可关闭。</p></body></html>"
+        )
+        fd, path = tempfile.mkstemp(suffix="_emoekg_login.html")
+        os.close(fd)
+        Path(path).write_text(html, encoding="utf-8")
+        webbrowser.open(f"file://{path}")
+        print("[emoekg] 已在浏览器打开二维码页面，请用 Bilibili App 扫码登录…")
+    except Exception:  # noqa: BLE001 — degrade to terminal ASCII
+        try:
+            print(login.get_qrcode_terminal())
+            print("[emoekg] 请用 Bilibili App 扫描上方二维码登录…")
+        except Exception:  # noqa: BLE001
+            print("[emoekg] 无法显示二维码，请重试登录。")
+
+
 def qrcode_login(timeout: int = 120) -> Any | None:
-    """Drive QR-code login. Print an ASCII QR; poll until DONE/TIMEOUT.
+    """Drive QR-code login. Open a browser QR page; poll until DONE/TIMEOUT.
 
     Returns a Credential on success (also written to cache), else None.
     Blocks up to ``timeout`` seconds. Never raises on a failed/expired login.
@@ -136,8 +180,7 @@ def qrcode_login(timeout: int = 120) -> Any | None:
     except Exception:  # noqa: BLE001 — network/login failures degrade to None
         return None
 
-    print(login.get_qrcode_terminal())
-    print("[emoekg] 请用 Bilibili App 扫描上方二维码登录（约 2 分钟内有效）…")
+    _present_qrcode(login)
 
     notified = False
     deadline = time.time() + timeout
