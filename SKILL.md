@@ -64,7 +64,9 @@ S1+S2 和 S4+S5 是两个子进程调用；**Stage 3 夹在中间**，由你在�
 ```
 用户：帮我分析 https://www.bilibili.com/video/BV... 的弹幕情绪
            ↓
-[1] emoekg prepare <url> -o emoekg_<BV>_<date>/
+[0] 【强制】ask_user_question 弹窗：全量(准/慢/费token) or 抽样(快/省/粗)？
+           ↓
+[1] emoekg prepare <url> -o emoekg_<BV>_<date>/   （选抽样则加 --no-login）
        → Stage 1（拉弹幕）+ Stage 2（切片）
        → 产出 chunks.md 给你（Agent）看
            ↓
@@ -80,6 +82,20 @@ S1+S2 和 S4+S5 是两个子进程调用；**Stage 3 夹在中间**，由你在�
 
 ### 执行步骤
 
+**Step 0 — 强制询问：全量 or 抽样（必做，不可跳过）**
+
+拿到视频后、跑 `emoekg prepare` **之前**，你**必须**用 `ask_user_question` 弹窗让用户二选一，不要替用户决定：
+
+- **选项 A · 全量弹幕（登录态）**：弹幕最全、情绪曲线最准；但**消耗更多 token、耗时更久**（弹幕可达数百~上千条，逐条标注 + 打分工作量大），首次还需扫码登录。
+- **选项 B · 实时弹幕（抽样，免登录）**：游客实时池，弹幕量少（通常几十条）、**省 token、出报告快**；情绪曲线较粗。
+
+弹窗里**必须明确写出**「全量更准但更慢更费 token / 抽样更快更省但更粗」这个权衡，让用户知情。
+
+- 选 A → Step 2 用 `emoekg prepare <url> -o <dir>`（默认即全量，无凭证会触发扫码登录）
+- 选 B → Step 2 用 `emoekg prepare <url> -o <dir> --no-login`（强制走游客实时池，不弹登录）
+
+> 这是**硬性闸门**：哪怕用户原话只说"分析一下这个视频"，也要先弹这个二选一。用户没回答之前不要 `prepare`。批量分析多个视频时，问一次、对本批次统一适用即可。
+
 **Step 1 — 确认输入 + 解析输出位置**
 
 向用户确认：
@@ -94,7 +110,10 @@ S1+S2 和 S4+S5 是两个子进程调用；**Stage 3 夹在中间**，由你在�
 
 ```bash
 # 默认（推荐）：放桌面，working dir 命名 emoekg_<BV>_<YYYYMMDD>
+# 全量（Step 0 选 A）
 emoekg prepare <url_or_bvid> -o <DESKTOP>/emoekg_<BV>_<YYYYMMDD>/
+# 抽样（Step 0 选 B）：加 --no-login 强制游客实时池
+emoekg prepare <url_or_bvid> -o <DESKTOP>/emoekg_<BV>_<YYYYMMDD>/ --no-login
 
 # Windows 实例
 emoekg prepare BV18acMz4ELL -o %USERPROFILE%/Desktop/emoekg_BV18acMz4ELL_20260513/
@@ -102,6 +121,8 @@ emoekg prepare BV18acMz4ELL -o %USERPROFILE%/Desktop/emoekg_BV18acMz4ELL_2026051
 # macOS / Linux 实例
 emoekg prepare BV18acMz4ELL -o ~/Desktop/emoekg_BV18acMz4ELL_20260513/
 ```
+
+> 命令按 **Step 0 用户的二选一**：选 A 用全量命令，选 B 必须带 `--no-login`。
 
 CLI 会：
 - 在 `<working_dir>/` 下生成 `meta.json` + `danmaku.json`
@@ -315,6 +336,9 @@ cp "$HOME/Desktop/AI情绪心电图-<关键字>/emoekg_report.html" "$HOME/Deskt
 
 | 陷阱 | 应对 |
 |---|---|
+| **没弹 Step 0 二选一就直接 `prepare`** | 违规。任何情况下都要先用 `ask_user_question` 让用户选全量/抽样；用户没说≠默认全量 |
+| **Step 0 弹窗没讲清权衡** | 必须写明「全量更准但更慢更费 token / 抽样更快更省但更粗」，否则用户无法知情选择 |
+| **选了抽样却没加 `--no-login`** | 选 B 必须 `emoekg prepare ... --no-login`，否则有缓存凭证时仍会跑全量 |
 | **跳过 Stage 3 直接 `finalize`** | CLI 会拒绝并提示你打分；不要改 CLI 去绕过 |
 | **`scores.json` 长度 ≠ chunks 数** | S4 会 ERROR 退出；回去补齐 |
 | **把 SPARSE 块硬打分** | 按 rubric §4.1 写 `[0]*8` + `note="SPARSE"`，别想当然 |
@@ -330,6 +354,10 @@ cp "$HOME/Desktop/AI情绪心电图-<关键字>/emoekg_report.html" "$HOME/Deskt
 | **覆盖用户上次跑出来的报告** | 桌面同名文件夹已存在时加 `_2`/`_3`，不要 overwrite 整个目录 |
 
 ## Red Flags — STOP and Reconsider
+
+**流程闸门（最优先）：**
+- 你正准备跑 `emoekg prepare`，但**还没用 `ask_user_question` 弹过全量/抽样二选一** → 停，先弹 Step 0。
+- 你心里想"用户应该想要全量吧 / 用户没说就默认全量" → 这是借口。Step 0 是硬性闸门，必须让用户自己选。
 
 看到这些征兆，说明打分没到位：
 
