@@ -317,6 +317,7 @@ function renderChart() {
   const colors = CHART_COLORS;
 
   const series = DIMS.map(d => ({
+    id: 'line-' + d,
     name: DIM_LABEL[d],
     type: 'line',
     data: SCORES.map(s => [s.time_start, s[d]]),
@@ -501,6 +502,180 @@ function renderChart() {
     if (!chart.containPixel({gridIndex: 0}, [ev.offsetX, ev.offsetY])) return;
     const t = chart.convertFromPixel({gridIndex: 0}, [ev.offsetX, ev.offsetY])[0];
     if (typeof t === 'number' && t >= 0) seekAll(t);
+  });
+
+  // ---------- hover pulse effect (style A1: 快描 + 整体褪色循环) ----------
+  // Hovering an emotion line fires a monitor-style "heartbeat": a bright white
+  // head rapidly draws the line left→right (~0.5s, easeOut), then the whole
+  // bright trace fades back to the line's own color (~0.7s), pauses, repeats.
+  // Implemented as two transient overlay series ('pulse' line + 'pulse-head'
+  // dot) merged in by id; both silent so tooltip / axis-pointer are untouched.
+  let pulseRaf = null;
+  let pulseDim = null;
+  let legendPulse = false;   // true when the pulse is driven by legend hover
+
+  function stopPulse() {
+    if (pulseRaf) { cancelAnimationFrame(pulseRaf); pulseRaf = null; }
+    chart.setOption({series: [
+      {id: 'pulse',      name: 'pulse',      type: 'line',    data: []},
+      {id: 'pulse-head', name: 'pulse-head', type: 'scatter', data: []},
+    ]}, false);
+  }
+
+  function startPulse(dim) {
+    stopPulse();
+    const color = colors[dim];
+    const full = SCORES.map(s => [s.time_start, s[dim]]);
+    if (full.length < 2) return;
+    // Pulse timing (ms). DRAW = bright head sprints across the line;
+    // FADE = white fades back to the line's own color (easeOutCubic — quick &
+    // clean); GAP = pause before the next pulse. One cycle = DRAW+FADE+GAP.
+    const DRAW = 550, FADE = 220, GAP = 140;
+    let t0 = performance.now(), phase = 'draw';
+
+    function setOverlay(cut, op, blur, showHead) {
+      chart.setOption({series: [
+        {id: 'pulse', name: 'pulse', type: 'line', data: full.slice(0, cut),
+         smooth: 0.35, symbol: 'none', z: 20, silent: true,
+         // The 8 emotion lines use emphasis:{focus:'series'}, which dims every
+         // *other* series while one is hovered. The pulse overlay is a series
+         // too, so without this it gets faded to near-invisible exactly when
+         // the user hovers a line. blur.lineStyle.opacity:1 keeps it bright.
+         blur: {lineStyle: {opacity: 1}},
+         lineStyle: {color: '#fff', width: 2.6, opacity: op,
+                     shadowColor: color, shadowBlur: blur}},
+        {id: 'pulse-head', name: 'pulse-head', type: 'scatter',
+         data: showHead && cut > 0 ? [full[Math.min(full.length - 1, cut - 1)]] : [],
+         symbolSize: 8, z: 21, silent: true,
+         blur: {itemStyle: {opacity: 1}},
+         itemStyle: {color: '#fff', shadowColor: color, shadowBlur: 24,
+                     borderColor: color, borderWidth: 2}},
+      ]}, false);
+    }
+
+    function frame(now) {
+      const t = now - t0;
+      if (phase === 'draw') {
+        const p = Math.min(1, t / DRAW);
+        const e = 1 - Math.pow(1 - p, 2);          // easeOut — head sprints
+        const cut = Math.max(1, Math.floor(e * full.length));
+        setOverlay(cut, 1, 16, true);
+        if (p >= 1) { phase = 'fade'; t0 = now; }
+      } else if (phase === 'fade') {
+        const p = Math.min(1, t / FADE);
+        // easeOutCubic — the white snaps off hard at the start so it reads as a
+        // quick, clean fade back to the line's own color (no lingering haze).
+        const f = 1 - Math.pow(1 - p, 3);
+        const op = 1 - f;
+        setOverlay(full.length, op, 16 * op, false);
+        if (p >= 1) { phase = 'gap'; t0 = now; }
+      } else if (t >= GAP) {
+        phase = 'draw'; t0 = now;
+      }
+      pulseRaf = requestAnimationFrame(frame);
+    }
+
+    chart.setOption({series: [
+      {id: 'pulse',      name: 'pulse',      type: 'line',    data: [], z: 20},
+      {id: 'pulse-head', name: 'pulse-head', type: 'scatter', data: [], z: 21},
+    ]}, false);
+    pulseRaf = requestAnimationFrame(frame);
+  }
+
+  // Trigger detection. ECharts 'series' mouseover is unreliable for thin
+  // symbol-less lines under an axis-trigger tooltip — the cursor rarely lands
+  // exactly on the 1.4px stroke. Instead we track the raw zrender pointer and
+  // pick the emotion line whose value is *closest to the cursor's y* at the
+  // cursor's x. Whichever line you hover near pulses; moving off-grid stops it.
+  const PICK_THRESHOLD_PX = 28;   // how near (vertically) the cursor must be
+
+  function valueAtX(dim, x) {
+    // Linear-interpolate the dim's score at time-position x from SCORES.
+    const pts = SCORES;
+    if (x <= pts[0].time_start) return pts[0][dim];
+    const last = pts[pts.length - 1];
+    if (x >= last.time_start) return last[dim];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      if (x >= a.time_start && x <= b.time_start) {
+        const r = (x - a.time_start) / (b.time_start - a.time_start || 1);
+        return a[dim] + (b[dim] - a[dim]) * r;
+      }
+    }
+    return last[dim];
+  }
+
+  function nearestDimAt(offsetX, offsetY) {
+    const data = chart.convertFromPixel({gridIndex: 0}, [offsetX, offsetY]);
+    if (!data) return null;
+    const x = data[0];
+    let best = null, bestDist = Infinity;
+    for (const dim of DIMS) {
+      const yVal = valueAtX(dim, x);
+      const px = chart.convertToPixel({gridIndex: 0}, [x, yVal]);
+      if (!px) continue;
+      const dist = Math.abs(px[1] - offsetY);
+      if (dist < bestDist) { bestDist = dist; best = dim; }
+    }
+    return bestDist <= PICK_THRESHOLD_PX ? best : null;
+  }
+
+  const zr = chart.getZr();
+  zr.on('mousemove', (ev) => {
+    const inGrid = chart.containPixel({gridIndex: 0}, [ev.offsetX, ev.offsetY]);
+    if (!inGrid) {
+      // Outside the plot area: only the legend may keep a pulse alive. A
+      // cursor-driven pulse stops; a legend-driven one is left untouched.
+      if (pulseDim && !legendPulse) { pulseDim = null; stopPulse(); }
+      return;
+    }
+    // Cursor re-entered the plot — it now owns the pulse, overriding legend.
+    legendPulse = false;
+    const dim = nearestDimAt(ev.offsetX, ev.offsetY);
+    if (dim && dim !== pulseDim) { pulseDim = dim; startPulse(dim); }
+    else if (!dim && pulseDim) { pulseDim = null; stopPulse(); }
+  });
+  zr.on('mouseout', () => {
+    // Cursor left the whole chart (incl. the legend) — always clear, even a
+    // legend-driven pulse. This is the canonical stop for legend hover.
+    if (pulseDim) { pulseDim = null; legendPulse = false; stopPulse(); }
+  });
+
+  // Hovering a legend item is an explicit "select this line" — drive the same
+  // pulse. ECharts fires 'highlight' on legend hover (legendHoverLink) and
+  // 'downplay' on leave. The payload shape varies (top-level seriesName /
+  // seriesIndex, or a `batch` array), so probe all of them. Map the legend's
+  // display label (e.g. 喜悦) back to its dim key.
+  const LABEL_TO_DIM = Object.fromEntries(DIMS.map(d => [DIM_LABEL[d], d]));
+
+  function dimFromHighlight(params) {
+    const cand = [];
+    const push = (o) => { if (o) cand.push(o); };
+    push(params);
+    if (Array.isArray(params.batch)) params.batch.forEach(push);
+    for (const c of cand) {
+      if (typeof c.seriesIndex === 'number' && c.seriesIndex < DIMS.length) {
+        return DIMS[c.seriesIndex];
+      }
+      const nm = c.seriesName || c.name;
+      if (nm && LABEL_TO_DIM[nm]) return LABEL_TO_DIM[nm];
+    }
+    return null;
+  }
+
+  // Legend hover drives the same pulse. IMPORTANT: do NOT stop on 'downplay'.
+  // Our per-frame setOption churns ECharts' emphasis state while the legend is
+  // hovered, which makes it spuriously re-emit downplay→highlight; reacting to
+  // downplay would restart the pulse every frame, freezing it on the fully-drawn
+  // white frame (the "white底不褪色" bug). Instead highlight only *starts* it
+  // (same-dim calls are guarded out so one cycle runs through to its fade), and
+  // it's stopped when the cursor leaves the whole chart (zr 'mouseout' below) or
+  // when a different legend item / a grid line takes over.
+  chart.on('highlight', (params) => {
+    const dim = dimFromHighlight(params);
+    if (!dim) return;
+    legendPulse = true;
+    if (dim !== pulseDim) { pulseDim = dim; startPulse(dim); }
   });
 
   window.addEventListener('resize', () => chart && chart.resize());

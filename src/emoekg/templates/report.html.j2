@@ -1083,6 +1083,8 @@ section.zone::after {
    phosphor trail. Uses `mix-blend-mode: screen` so it adds light over
    the existing chart traces instead of covering them. */
 .ecg-sweep {
+  display: none;   /* clinical-monitor sweep cursor removed per design — the
+                      hover pulse on each emotion line is the only motion now */
   position: absolute;
   inset: 44px 24px 58px 48px;   /* matches ECharts grid */
   pointer-events: none;
